@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koloni Swarm Intelligence System v2.5 - Tool Infrastructure Layer</title>
+    <style>
+        :root {
+            --queen-gold: #FFD700;
+            --worker-blue: #4169E1;
+            --tool-active: #00FF7F;
+            --tool-busy: #00CED1;
+            --tool-error: #FF4757;
+            --bg-dark: #0a0a0f;
+            --bg-panel: #13131f;
+            --bg-card: #1a1a2e;
+            --bg-elevated: #252538;
+            --text-primary: #e0e0e0;
+            --text-secondary: #8892b0;
+            --border-color: #2d2d3d;
+            --accent: #64ffda;
+            --shadow-glow: 0 0 20px rgba(100, 255, 218, 0.2);
+            --bus-active: rgba(0, 206, 209, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Architecture Visualization Sidebar */
+        .sidebar {
+            width: 400px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--queen-gold), #ffed4e);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .architecture-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .arch-tab {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+        }
+
+        .arch-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+        .arch-tab.active { 
+            color: var(--accent); 
+            border-bottom: 2px solid var(--accent);
+            background: rgba(100, 255, 218, 0.05);
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: none;
+        }
+
+        .tab-content.active { display: block; }
+
+        /* Component Cards */
+        .component-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+
+        .component-card:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .component-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .component-name {
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--tool-active);
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .status-dot.busy { background: var(--tool-busy); animation: pulse 1.5s infinite; }
+        .status-dot.error { background: var(--tool-error); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .component-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .interface-schema {
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            margin-top: 12px;
+            overflow-x: auto;
+        }
+
+        .schema-line {
+            padding: 2px 0;
+            border-left: 2px solid transparent;
+            padding-left: 8px;
+            margin-left: -8px;
+        }
+
+        .schema-line.required { border-left-color: var(--accent); }
+        .schema-key { color: var(--accent); }
+        .schema-type { color: #ff79c6; }
+        .schema-desc { color: var(--text-secondary); }
+
+        /* Message Bus Visualization */
+        .bus-visualization {
+            height: 300px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .bus-line {
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            right: 10%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--border-color), var(--accent), var(--border-color));
+            background-size: 200% 100%;
+            animation: busFlow 3s linear infinite;
+            border-radius: 2px;
+        }
+
+        @keyframes busFlow {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .message-packet {
+            position: absolute;
+            width: 60px;
+            height: 30px;
+            background: var(--accent);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #000;
+            box-shadow: 0 0 10px var(--accent);
+            transition: all 0.5s;
+        }
+
+        /* Context Tree */
+        .context-tree {
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .context-node {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: var(--bg-dark);
+            border-left: 3px solid var(--border-color);
+            border-radius: 0 4px 4px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .context-node.scope-global { border-left-color: var(--queen-gold); }
+        .context-node.scope-colony { border-left-color: var(--worker-blue); }
+        .context-node.scope-agent { border-left-color: var(--accent); }
+        .context-node.scope-private { border-left-color: var(--text-secondary); opacity: 0.7; }
+
+        /* Permission Matrix */
+        .perm-matrix {
+            display: grid;
+            grid-template-columns: auto repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .perm-cell {
+            background: var(--bg-card);
+            padding: 10px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .perm-cell.header {
+            background: var(--bg-elevated);
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .perm-cell.allowed {
+            background: rgba(0, 255, 127, 0.1);
+            color: var(--tool-active);
+            font-weight: 700;
+        }
+
+        .perm-cell.denied {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--tool-error);
+        }
+
+        .perm-cell.ratelimited {
+            background: rgba(255, 165, 0, 0.1);
+            color: #ffa502;
+        }
+
+        /* Main Workspace */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workspace-header {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bus-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .bus-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .bus-btn:hover { border-color: var(--accent); background: rgba(100, 255, 218, 0.1); }
+        .bus-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+        /* Execution Monitor */
+        .monitor-panel {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: var(--bg-dark);
+        }
+
+        .execution-timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .execution-timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .execution-event {
+            position: relative;
+            margin-bottom: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .event-dot {
+            position: absolute;
+            left: -23px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg-dark);
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        .event-dot.validate { background: #ffd700; box-shadow: 0 0 0 2px #ffd700; }
+        .event-dot.execute { background: var(--worker-blue); box-shadow: 0 0 0 2px var(--worker-blue); }
+        .event-dot.complete { background: var(--tool-active); box-shadow: 0 0 0 2px var(--tool-active); }
+        .event-dot.error { background: var(--tool-error); box-shadow: 0 0 0 2px var(--tool-error); }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .event-type {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .event-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .event-details {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .event-context {
+            margin-top: 12px;
+            padding: 10px;
+            background: var(--bg-dark);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 11px;
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Context Flow Visualization */
+        .context-flow {
+            position: fixed;
+            bottom: 0;
+            left: 400px;
+            right: 0;
+            height: 250px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+        }
+
+        .context-panel {
+            flex: 1;
+            border-right: 1px solid var(--border-color);
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .context-panel:last-child { border-right: none; }
+
+        .context-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .context-item {
+            padding: 8px;
+            margin-bottom: 6px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .context-item.new { border-left-color: var(--tool-active); animation: highlight 2s; }
+        .context-item.modified { border-left-color: var(--tool-busy); }
+        .context-item.inherited { border-left-color: var(--text-secondary); opacity: 0.7; }
+
+        @keyframes highlight {
+            0% { background: rgba(0, 255, 127, 0.3); }
+            100% { background: var(--bg-dark); }
+        }
+
+        .context-key { color: var(--accent); }
+        .context-value { color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+
+        .flow-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: var(--accent);
+            opacity: 0.5;
+        }
+
+        /* Schema Validator */
+        .validator-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 350px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .validator-panel.active { display: block; }
+
+        .validation-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .validation-item:last-child { border-bottom: none; }
+
+        .check-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .check-pass { background: rgba(0, 255, 127, 0.2); color: var(--tool-active); }
+        .check-fail { background: rgba(255, 71, 87, 0.2); color: var(--tool-error); }
+        .check-warn { background: rgba(255, 165, 0, 0.2); color: #ffa502; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+    </style>
+</head>
+<body>
+
+    <!-- Architecture Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">K</div>
+            <div>
+                <div style="font-weight: 700;">Koloni v2.5</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Tool Infrastructure Layer</div>
+            </div>
+        </div>
+
+        <div class="architecture-tabs">
+            <button class="arch-tab active" onclick="switchTab('contract')">Contract</button>
+            <button class="arch-tab" onclick="switchTab('bus')">Message Bus</button>
+            <button class="arch-tab" onclick="switchTab('context')">Context</button>
+            <button class="arch-tab" onclick="switchTab('acl')">ACL</button>
+        </div>
+
+        <!-- Tab: Tool Contract -->
+        <div id="tab-contract" class="tab-content active">
+            <div class="component-card">
+                <div class="component-header">
+                    <div class="component-name">
+                        <div class="status-dot"></div>
+                        ToolContract Interface
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-secondary);">v1.0.0</span>
+                </div>
+                <div class="component-meta">Defines the socket that all tools plug into</div>
+                
+                <div class="interface-schema">
+                    <div class="schema-line required">
+                        <span class="schema-key">id</span>: <span class="schema-type">string</span> <span class="schema-desc">// Unique tool identifier</span>
+                    </div>
+                    <div class="schema-line required">
+                        <span class="schema-key">version</span>: <span class="schema-type">semver</span> <span class="schema-desc">// Tool version</span>
+                    </div>
+                    <div class="schema-line required">
+                        <span class="schema-key">schema</span>: <span class="schema-type">"koloni-tool-v1"</span>
+                    </div>
+                    <div class="schema-line required">
+                        <span class="schema-key">input</span>: <span class="schema-type">JSONSchema</span> <span class="schema-desc">// Validation schema</span>
+                    </div>
+                    <div class="schema-line required">
+                        <span class="schema-key">output</span>: <span class="schema-type">JSONSchema</span> <span class="schema-desc">// Output contract</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">timeout</span>: <span class="schema-type">number</span> <span class="schema-desc">// ms, default 5000</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">maxRetries</span>: <span class="schema-type">number</span> <span class="schema-desc">// default 3</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">sandboxLevel</span>: <span class="schema-type">"none"|"container"|"vm"</span>
+                    </div>
+                    <div class="schema-line required">
+                        <span class="schema-key">execute</span>: <span class="schema-type">(input, context) => Promise&lt;output&gt;</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="component-card">
+                <div class="component-header">
+                    <div class="component-name">
+                        <div class="status-dot busy"></div>
+                        SchemaValidator
+                    </div>
+                </div>
+                <div class="component-meta">Pre-flight input validation & output verification</div>
+                <button class="bus-btn" style="width: 100%; margin-top: 12px;" onclick="toggleValidator()">
+                    Show Validator Status
+                </button>
+            </div>
+
+            <div class="component-card">
+                <div class="component-header">
+                    <div class="component-name">Error Standardization</div>
+                </div>
+                <div class="interface-schema">
+                    <div class="schema-line">
+                        <span class="schema-key">TIMEOUT</span>: <span class="schema-desc">Execution exceeded timeout</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">VALIDATION_FAIL</span>: <span class="schema-desc">Input didn't match schema</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">PERMISSION_DENIED</span>: <span class="schema-desc">Agent lacks capability</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">DEPENDENCY_MISSING</span>: <span class="schema-desc">Required context key absent</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">SANDBOX_ESCAPE</span>: <span class="schema-desc">Security policy violation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Message Bus -->
+        <div id="tab-bus" class="tab-content">
+            <div class="bus-visualization" id="busViz">
+                <div class="bus-line"></div>
+            </div>
+
+            <div class="component-card">
+                <div class="component-header">
+                    <div class="component-name">
+                        <div class="status-dot busy"></div>
+                        AgentToolBus
+                    </div>
+                </div>
+                <div class="component-meta">Async message queue for non-blocking execution</div>
+                
+                <div style="margin-top: 12px; font-size: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Queue Depth:</span>
+                        <span id="queueDepth" style="font-family: monospace; color: var(--accent);">0</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Active Jobs:</span>
+                        <span id="activeJobs" style="font-family: monospace; color: var(--tool-busy);">0</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Throughput:</span>
+                        <span style="font-family: monospace; color: var(--tool-active);">12 msg/sec</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="component-card">
+                <div class="component-name">Message Types</div>
+                <div class="interface-schema">
+                    <div class="schema-line">
+                        <span class="schema-key">TOOL_REQUEST</span>: <span class="schema-desc">Agent → Bus</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">TOOL_ASSIGNED</span>: <span class="schema-desc">Bus → Worker</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">PROGRESS_UPDATE</span>: <span class="schema-desc">Streaming chunks</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">TOOL_COMPLETE</span>: <span class="schema-desc">Worker → Bus → Agent</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">CANCEL_REQUEST</span>: <span class="schema-desc">Agent aborts job</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Context System -->
+        <div id="tab-context" class="tab-content">
+            <div class="component-card">
+                <div class="component-header">
+                    <div class="component-name">
+                        <div class="status-dot"></div>
+                        ContextManager
+                    </div>
+                </div>
+                <div class="component-meta">Shared state with scoping & inheritance</div>
+            </div>
+
+            <div class="context-tree" id="contextTree">
+                <div class="context-node scope-global">
+                    <span>🌍 global.memory</span>
+                    <span style="color: var(--text-secondary);">shared</span>
+                </div>
+                <div class="context-node scope-colony" style="margin-left: 20px;">
+                    <span>🏛️ colony.config</span>
+                    <span style="color: var(--text-secondary);">inherited</span>
+                </div>
+                <div class="context-node scope-agent" style="margin-left: 40px;">
+                    <span>🤖 agent.state</span>
+                    <span style="color: var(--text-secondary);">isolated</span>
+                </div>
+                <div class="context-node scope-private" style="margin-left: 60px;">
+                    <span>🔒 tool.scratchpad</span>
+                    <span style="color: var(--text-secondary);">private</span>
+                </div>
+            </div>
+
+            <div class="component-card" style="margin-top: 20px;">
+                <div class="component-name">Context Scopes</div>
+                <div style="margin-top: 12px; font-size: 12px; line-height: 1.8;">
+                    <div><strong style="color: var(--queen-gold);">GLOBAL:</strong> Swarm-wide shared memory (token budgets, security policies)</div>
+                    <div><strong style="color: var(--worker-blue);">COLONY:</strong> Task-specific shared state (intermediate results)</div>
+                    <div><strong style="color: var(--accent);">AGENT:</strong> Agent-private workspace (sub-colony isolation)</div>
+                    <div><strong style="color: var(--text-secondary);">PRIVATE:</strong> Tool-only temporary storage (auto-cleanup)</div>
+                </div>
+            </div>
+
+            <div class="component-card">
+                <div class="component-name">Context Operations</div>
+                <div class="interface-schema">
+                    <div class="schema-line">
+                        <span class="schema-key">get(key, scope?)</span>: <span class="schema-desc">Read with inheritance</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">set(key, value, scope)</span>: <span class="schema-desc">Write to specific scope</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">fork()</span>: <span class="schema-desc">Immutable snapshot for rollback</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">merge(snapshot)</span>: <span class="schema-desc">Restore from snapshot</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: ACL / Permissions -->
+        <div id="tab-acl" class="tab-content">
+            <div class="component-card">
+                <div class="component-header">
+                    <div class="component-name">
+                        <div class="status-dot"></div>
+                        CapabilityACL
+                    </div>
+                </div>
+                <div class="component-meta">Token-based permission matrix</div>
+
+                <div class="perm-matrix">
+                    <div class="perm-cell header">Agent \ Tool</div>
+                    <div class="perm-cell header">Research</div>
+                    <div class="perm-cell header">CodeExec</div>
+                    <div class="perm-cell header">Network</div>
+                    <div class="perm-cell header">FileSys</div>
+
+                    <div class="perm-cell header">Queen</div>
+                    <div class="perm-cell allowed">✓</div>
+                    <div class="perm-cell denied">✕</div>
+                    <div class="perm-cell allowed">✓</div>
+                    <div class="perm-cell allowed">✓</div>
+
+                    <div class="perm-cell header">Worker</div>
+                    <div class="perm-cell allowed">✓</div>
+                    <div class="perm-cell allowed">✓</div>
+                    <div class="perm-cell ratelimited">10/m</div>
+                    <div class="perm-cell ratelimited">tmp</div>
+
+                    <div class="perm-cell header">Drone</div>
+                    <div class="perm-cell allowed">✓</div>
+                    <div class="perm-cell denied">✕</div>
+                    <div class="perm-cell denied">✕</div>
+                    <div class="perm-cell denied">✕</div>
+
+                    <div class="perm-cell header">SubColony</div>
+                    <div class="perm-cell allowed">✓</div>
+                    <div class="perm-cell allowed">✓</div>
+                    <div class="perm-cell ratelimited">100/m</div>
+                    <div class="perm-cell ratelimited">isolated</div>
+                </div>
+            </div>
+
+            <div class="component-card">
+                <div class="component-name">JWT Capability Claims</div>
+                <div class="interface-schema">
+                    <div class="schema-line">
+                        <span class="schema-key">sub</span>: <span class="schema-type">agent_id</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">capabilities</span>: <span class="schema-type">string[]</span> <span class="schema-desc">// ["tool:research", "tool:code:readonly"]</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">rate_limits</span>: <span class="schema-type">object</span> <span class="schema-desc">// {"network": 10, "filesystem": 100}</span>
+                    </div>
+                    <div class="schema-line">
+                        <span class="schema-key">exp</span>: <span class="schema-type">epoch</span> <span class="schema-desc">// Session TTL</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="component-card">
+                <div class="component-name">Forbidden Combinations</div>
+                <div style="margin-top: 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.8;">
+                    <div style="color: var(--tool-error); margin-bottom: 8px;">🔒 Security Policy Blocks:</div>
+                    <div>• Network + CodeExec (prevents data exfiltration)</div>
+                    <div>• FileSystem + SubColonySpawn (prevents poisoning)</div>
+                    <div>• Research + Email (prevents phishing)</div>
+                    <div style="margin-top: 8px; font-size: 11px;">DAG validation enforces at composition time</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-container">
+        <div class="workspace-header">
+            <div>
+                <div style="font-weight: 600; font-size: 16px;">Tool Infrastructure Monitor</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                    Bus: <span style="color: var(--accent);">Active</span> • 
+                    Context: <span style="color: var(--accent);">Shared</span> • 
+                    ACL: <span style="color: var(--accent);">Enforcing</span>
+                </div>
+            </div>
+            <div class="bus-controls">
+                <button class="bus-btn" onclick="simulateToolCall()">
+                    <span>▶</span> Simulate Tool Call
+                </button>
+                <button class="bus-btn" onclick="injectCancellation()">
+                    <span>⏹</span> Inject Cancel
+                </button>
+                <button class="bus-btn" onclick="showContextSnapshot()">
+                    <span>📸</span> Context Snapshot
+                </button>
+                <button class="bus-btn active" onclick="simulatePipeline()">
+                    <span>⚡</span> Run Pipeline
+                </button>
+            </div>
+        </div>
+
+        <!-- Execution Monitor -->
+        <div class="monitor-panel" id="monitorPanel">
+            <div class="execution-timeline" id="executionTimeline">
+                <div style="text-align: center; color: var(--text-secondary); padding: 40px;">
+                    Click "Simulate Tool Call" or "Run Pipeline" to see infrastructure in action
+                </div>
+            </div>
+        </div>
+
+        <!-- Context Flow Panels -->
+        <div class="context-flow">
+            <div class="context-panel">
+                <div class="context-title">🔒 Private (Tool)</div>
+                <div id="privateContext">
+                    <div class="context-item inherited">
+                        <span class="context-key">scratchpad</span>
+                        <span class="context-value">{}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flow-arrow" style="left: 25%;">→</div>
+            
+            <div class="context-panel">
+                <div class="context-title">🤖 Agent Scope</div>
+                <div id="agentContext">
+                    <div class="context-item inherited">
+                        <span class="context-key">agent_id</span>
+                        <span class="context-value">W-001</span>
+                    </div>
+                    <div class="context-item inherited">
+                        <span class="context-key">capabilities</span>
+                        <span class="context-value">[research, code]</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flow-arrow" style="left: 50%;">→</div>
+            
+            <div class="context-panel">
+                <div class="context-title">🏛️ Colony Scope</div>
+                <div id="colonyContext">
+                    <div class="context-item inherited">
+                        <span class="context-key">task_id</span>
+                        <span class="context-value">T-001</span>
+                    </div>
+                    <div class="context-item inherited">
+                        <span class="context-key">intermediate_results</span>
+                        <span class="context-value">[]</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flow-arrow" style="left: 75%;">→</div>
+            
+            <div class="context-panel">
+                <div class="context-title">🌍 Global Scope</div>
+                <div id="globalContext">
+                    <div class="context-item inherited">
+                        <span class="context-key">security_policy</span>
+                        <span class="context-value">strict</span>
+                    </div>
+                    <div class="context-item inherited">
+                        <span class="context-key">token_budget</span>
+                        <span class="context-value">4500/5000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Schema Validator Panel -->
+    <div class="validator-panel" id="validatorPanel">
+        <div style="font-weight: 600; margin-bottom: 12px; color: var(--accent);">Schema Validation</div>
+        <div id="validationResults"></div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Koloni Tool Infrastructure Layer (TIL)
+        // v2.5 - Contract, Bus, Context, ACL
+        // ==========================================
+
+        // 1. TOOL CONTRACT SYSTEM
+        class ToolContract {
+            constructor(spec) {
+                this.validateSpec(spec);
+                this.spec = spec;
+                this.errorCodes = {
+                    TIMEOUT: 'Execution exceeded timeout limit',
+                    VALIDATION_FAIL: 'Input validation failed against schema',
+                    PERMISSION_DENIED: 'Agent lacks required capability',
+                    DEPENDENCY_MISSING: 'Required context key not found',
+                    SANDBOX_ESCAPE: 'Security policy violation detected',
+                    CIRCUIT_OPEN: 'Circuit breaker is open',
+                    TOOL_DEPRECATED: 'Tool version no longer supported'
+                };
+            }
+
+            validateSpec(spec) {
+                const required = ['id', 'version', 'schema', 'input', 'output', 'execute'];
+                const missing = required.filter(r => !spec[r]);
+                if (missing.length > 0) {
+                    throw new Error(`Invalid ToolContract: missing ${missing.join(', ')}`);
+                }
+                if (spec.schema !== 'koloni-tool-v1') {
+                    throw new Error(`Unsupported schema: ${spec.schema}`);
+                }
+            }
+
+            validateInput(data) {
+                const schema = this.spec.input;
+                const errors = [];
+                
+                if (schema.required) {
+                    schema.required.forEach(field => {
+                        if (!(field in data)) {
+                            errors.push(`Missing required field: ${field}`);
+                        }
+                    });
+                }
+
+                if (schema.properties) {
+                    Object.entries(schema.properties).forEach(([key, prop]) => {
+                        if (data[key] !== undefined) {
+                            if (prop.type && typeof data[key] !== prop.type) {
+                                errors.push(`Type mismatch for ${key}: expected ${prop.type}`);
+                            }
+                            if (prop.enum && !prop.enum.includes(data[key])) {
+                                errors.push(`Invalid value for ${key}: must be one of ${prop.enum.join(', ')}`);
+                            }
+                        }
+                    });
+                }
+
+                return {
+                    valid: errors.length === 0,
+                    errors,
+                    warnings: []
+                };
+            }
+
+            validateOutput(data) {
+                return { valid: true, errors: [] };
+            }
+        }
+
+        // 2. MESSAGE BUS SYSTEM
+        class AgentToolBus {
+            constructor() {
+                this.queue = [];
+                this.activeJobs = new Map();
+                this.subscribers = new Map();
+                this.stats = { messages: 0, errors: 0, avgLatency: 0 };
+                this.processInterval = setInterval(() => this.processQueue(), 100);
+            }
+
+            async submit(agentId, toolId, input, context, options = {}) {
+                const message = {
+                    id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'TOOL_REQUEST',
+                    agentId,
+                    toolId,
+                    input,
+                    context,
+                    options: {
+                        timeout: options.timeout || 5000,
+                        maxRetries: options.maxRetries || 3,
+                        priority: options.priority || 'normal',
+                        streaming: options.streaming || false
+                    },
+                    timestamp: Date.now(),
+                    status: 'queued'
+                };
+
+                this.queue.push(message);
+                this.stats.messages++;
+                this.updateBusMetrics();
+
+                return new Promise((resolve, reject) => {
+                    this.subscribers.set(message.id, { resolve, reject, message });
+                    
+                    setTimeout(() => {
+                        if (this.subscribers.has(message.id)) {
+                            this.subscribers.get(message.id).reject(new Error('TIMEOUT'));
+                            this.subscribers.delete(message.id);
+                            this.stats.errors++;
+                        }
+                    }, message.options.timeout);
+                });
+            }
+
+            async processQueue() {
+                if (this.queue.length === 0) return;
+                
+                this.queue.sort((a, b) => {
+                    const priorities = { high: 0, normal: 1, low: 2 };
+                    return priorities[a.options.priority] - priorities[b.options.priority];
+                });
+
+                const message = this.queue.shift();
+                message.status = 'processing';
+                this.activeJobs.set(message.id, message);
+                this.updateBusMetrics();
+
+                try {
+                    const result = await this.executeTool(message);
+                    message.status = 'completed';
+                    
+                    if (this.subscribers.has(message.id)) {
+                        this.subscribers.get(message.id).resolve(result);
+                        this.subscribers.delete(message.id);
+                    }
+                } catch (error) {
+                    message.status = 'failed';
+                    if (this.subscribers.has(message.id)) {
+                        this.subscribers.get(message.id).reject(error);
+                        this.subscribers.delete(message.id);
+                    }
+                    this.stats.errors++;
+                } finally {
+                    this.activeJobs.delete(message.id);
+                    this.updateBusMetrics();
+                }
+            }
+
+            async executeTool(message) {
+                await delay(1000 + Math.random() * 2000);
+                
+                return {
+                    toolId: message.toolId,
+                    result: `Processed: ${JSON.stringify(message.input).substring(0, 50)}...`,
+                    timestamp: Date.now()
+                };
+            }
+
+            cancel(messageId) {
+                const queueIdx = this.queue.findIndex(m => m.id === messageId);
+                if (queueIdx >= 0) {
+                    this.queue[queueIdx].status = 'cancelled';
+                    this.queue.splice(queueIdx, 1);
+                    return true;
+                }
+                
+                if (this.activeJobs.has(messageId)) {
+                    this.activeJobs.get(messageId).status = 'cancelling';
+                    return true;
+                }
+                
+                return false;
+            }
+
+            updateBusMetrics() {
+                document.getElementById('queueDepth').textContent = this.queue.length;
+                document.getElementById('activeJobs').textContent = this.activeJobs.size;
+            }
+
+            dispose() {
+                clearInterval(this.processInterval);
+            }
+        }
+
+        // 3. CONTEXT MANAGEMENT SYSTEM
+        class ContextManager {
+            constructor() {
+                this.scopes = {
+                    global: new Map(),
+                    colony: new Map(),
+                    agent: new Map(),
+                    private: new Map()
+                };
+                this.snapshots = [];
+                this.inheritance = ['private', 'agent', 'colony', 'global'];
+            }
+
+            get(key, preferredScope = null) {
+                if (preferredScope && this.scopes[preferredScope].has(key)) {
+                    return {
+                        value: this.scopes[preferredScope].get(key),
+                        scope: preferredScope
+                    };
+                }
+
+                for (const scope of this.inheritance) {
+                    if (this.scopes[scope].has(key)) {
+                        return {
+                            value: this.scopes[scope].get(key),
+                            scope: scope
+                        };
+                    }
+                }
+
+                return undefined;
+            }
+
+            set(key, value, scope = 'colony') {
+                if (!this.scopes[scope]) {
+                    throw new Error(`Invalid scope: ${scope}`);
+                }
+                
+                const oldValue = this.scopes[scope].get(key);
+                this.scopes[scope].set(key, value);
+                this.updateContextUI(scope, key, value, !oldValue);
+                
+                return { oldValue, newValue: value, scope };
+            }
+
+            fork() {
+                const snapshot = {
+                    timestamp: Date.now(),
+                    data: {}
+                };
+                
+                this.inheritance.forEach(scope => {
+                    snapshot.data[scope] = new Map(this.scopes[scope]);
+                });
+                
+                this.snapshots.push(snapshot);
+                return snapshot;
+            }
+
+            merge(snapshot) {
+                Object.keys(snapshot.data).forEach(scope => {
+                    this.scopes[scope] = new Map(snapshot.data[scope]);
+                });
+                this.refreshContextUI();
+            }
+
+            createScopedContext(agentId, toolInstance) {
+                return {
+                    get: (key) => this.get(key),
+                    set: (key, value, scope) => {
+                        if (scope === 'private' || scope === 'agent') {
+                            return this.set(key, value, scope);
+                        }
+                        throw new Error(`Tool cannot write to ${scope} scope`);
+                    },
+                    agentId,
+                    toolInstance,
+                    fork: () => this.fork(),
+                    require: (keys) => {
+                        const missing = keys.filter(k => this.get(k) === undefined);
+                        if (missing.length > 0) {
+                            throw new Error(`DEPENDENCY_MISSING: ${missing.join(', ')}`);
+                        }
+                        return keys.map(k => this.get(k));
+                    }
+                };
+            }
+
+            updateContextUI(scope, key, value, isNew) {
+                const panelMap = {
+                    private: 'privateContext',
+                    agent: 'agentContext',
+                    colony: 'colonyContext',
+                    global: 'globalContext'
+                };
+                
+                const panel = document.getElementById(panelMap[scope]);
+                if (!panel) return;
+                
+                let item = Array.from(panel.children).find(el => 
+                    el.querySelector('.context-key')?.textContent === key
+                );
+                
+                const valueStr = JSON.stringify(value).substring(0, 30);
+                
+                if (item) {
+                    item.className = 'context-item modified';
+                    item.querySelector('.context-value').textContent = valueStr;
+                } else {
+                    item = document.createElement('div');
+                    item.className = `context-item ${isNew ? 'new' : 'modified'}`;
+                    item.innerHTML = `
+                        <span class="context-key">${key}</span>
+                        <span class="context-value">${valueStr}</span>
+                    `;
+                    panel.appendChild(item);
+                }
+                
+                if (isNew) {
+                    setTimeout(() => item.classList.remove('new'), 2000);
+                }
+            }
+
+            refreshContextUI() {
+                ['private', 'agent', 'colony', 'global'].forEach(scope => {
+                    const panel = document.getElementById(scope + 'Context');
+                    if (panel) panel.innerHTML = '';
+                });
+                
+                this.inheritance.forEach(scope => {
+                    this.scopes[scope].forEach((value, key) => {
+                        this.updateContextUI(scope, key, value, false);
+                    });
+                });
+            }
+        }
+
+        // 4. ACCESS CONTROL LAYER (ACL)
+        class CapabilityACL {
+            constructor() {
+                this.policies = new Map();
+                this.forbiddenCombinations = [
+                    ['tool:network', 'tool:code:exec'],
+                    ['tool:filesystem:write', 'meta:spawn'],
+                    ['tool:research', 'tool:email:send']
+                ];
+            }
+
+            checkCapability(agentClaims, toolId, toolCapabilities) {
+                const agentCaps = agentClaims.capabilities || [];
+                const required = this.getRequiredCapability(toolId, toolCapabilities);
+                
+                const hasCapability = agentCaps.some(cap => 
+                    cap === required || cap === 'tool:*' || cap.startsWith(`${required}:`)
+                );
+                
+                if (!hasCapability) {
+                    return {
+                        allowed: false,
+                        reason: 'PERMISSION_DENIED',
+                        missing: required
+                    };
+                }
+
+                const rateLimit = this.checkRateLimit(agentClaims, toolId);
+                if (!rateLimit.allowed) {
+                    return {
+                        allowed: false,
+                        reason: 'RATE_LIMIT_EXCEEDED',
+                        resetTime: rateLimit.resetTime
+                    };
+                }
+
+                const activeTools = agentClaims.activeTools || [];
+                const forbidden = this.checkForbiddenCombinations([...activeTools, toolId]);
+                if (forbidden) {
+                    return {
+                        allowed: false,
+                        reason: 'FORBIDDEN_COMBINATION',
+                        details: forbidden
+                    };
+                }
+
+                return { allowed: true, rateLimit: rateLimit.limit };
+            }
+
+            getRequiredCapability(toolId, capabilities) {
+                const capabilityMap = {
+                    'web-search': 'tool:research',
+                    'code-executor': 'tool:code:exec',
+                    'file-reader': 'tool:filesystem:read',
+                    'http-client': 'tool:network'
+                };
+                return capabilityMap[toolId] || `tool:${toolId}`;
+            }
+
+            checkRateLimit(claims, toolId) {
+                const limits = claims.rate_limits || {};
+                const toolCategory = this.getToolCategory(toolId);
+                const limit = limits[toolCategory] || 10;
+                const current = claims.current_usage?.[toolCategory] || 0;
+                
+                if (current >= limit) {
+                    return { allowed: false, resetTime: Date.now() + 60000 };
+                }
+                
+                return { allowed: true, limit: limit - current - 1 };
+            }
+
+            checkForbiddenCombinations(activeTools) {
+                for (const combo of this.forbiddenCombinations) {
+                    if (combo.every(tool => activeTools.includes(tool))) {
+                        return combo;
+                    }
+                }
+                return null;
+            }
+
+            getToolCategory(toolId) {
+                const categories = {
+                    'web-search': 'network',
+                    'http-client': 'network',
+                    'file-reader': 'filesystem',
+                    'code-executor': 'compute'
+                };
+                return categories[toolId] || 'general';
+            }
+
+            generateClaims(agentType, customCaps = []) {
+                const baseClaims = {
+                    sub: `agent-${Date.now()}`,
+                    iat: Date.now(),
+                    exp: Date.now() + 3600000,
+                    capabilities: [],
+                    rate_limits: {},
+                    activeTools: []
+                };
+
+                switch(agentType) {
+                    case 'queen':
+                        baseClaims.capabilities = ['tool:*', 'meta:*', 'bus:admin'];
+                        baseClaims.rate_limits = { network: 1000, filesystem: 1000, compute: 1000 };
+                        break;
+                    case 'worker':
+                        baseClaims.capabilities = ['tool:research', 'tool:code:readonly', 'tool:filesystem:temp', ...customCaps];
+                        baseClaims.rate_limits = { network: 10, filesystem: 100, compute: 50 };
+                        break;
+                    case 'drone':
+                        baseClaims.capabilities = ['tool:research', 'tool:audit'];
+                        baseClaims.rate_limits = { network: 0, filesystem: 0, compute: 20 };
+                        break;
+                    case 'subcolony':
+                        baseClaims.capabilities = ['tool:research', 'tool:code:exec', 'tool:filesystem:isolated'];
+                        baseClaims.rate_limits = { network: 100, filesystem: 500, compute: 200 };
+                        break;
+                }
+
+                return baseClaims;
+            }
+        }
+
+        // 5. TOOL EXECUTION ORCHESTRATOR
+        class ToolOrchestrator {
+            constructor(bus, context, acl) {
+                this.bus = bus;
+                this.context = context;
+                this.acl = acl;
+                this.contracts = new Map();
+            }
+
+            async execute(agentId, toolId, input, options = {}) {
+                const timeline = document.getElementById('executionTimeline');
+                const msgId = `exec-${Date.now()}`;
+                
+                this.logEvent(timeline, msgId, 'validate', 'Checking agent capabilities...');
+                const agentClaims = this.context.get('agent_claims')?.value || 
+                    this.acl.generateClaims('worker');
+                
+                const aclResult = this.acl.checkCapability(agentClaims, toolId, []);
+                if (!aclResult.allowed) {
+                    this.logEvent(timeline, msgId, 'error', `ACL Denied: ${aclResult.reason}`);
+                    throw new Error(aclResult.reason);
+                }
+                
+                this.logEvent(timeline, msgId, 'validate', 'Validating input schema...');
+                const contract = this.contracts.get(toolId);
+                if (!contract) {
+                    throw new Error(`Unknown tool: ${toolId}`);
+                }
+                
+                const validation = contract.validateInput(input);
+                if (!validation.valid) {
+                    this.logEvent(timeline, msgId, 'error', `Validation Failed: ${validation.errors.join(', ')}`);
+                    throw new Error('VALIDATION_FAIL');
+                }
+
+                this.logEvent(timeline, msgId, 'execute', 'Preparing execution context...');
+                const execContext = this.context.createScopedContext(agentId, { id: toolId });
+                
+                if (contract.spec.requiredContext) {
+                    try {
+                        execContext.require(contract.spec.requiredContext);
+                    } catch (err) {
+                        this.logEvent(timeline, msgId, 'error', err.message);
+                        throw err;
+                    }
+                }
+
+                this.logEvent(timeline, msgId, 'execute', 'Submitting to message bus...');
+                agentClaims.activeTools.push(toolId);
+                this.context.set('agent_claims', agentClaims, 'agent');
+
+                const result = await this.bus.submit(agentId, toolId, input, execContext, options);
+                
+                this.logEvent(timeline, msgId, 'complete', 'Validating output...');
+                
+                if (contract.spec.producesContext) {
+                    contract.spec.producesContext.forEach(key => {
+                        this.context.set(key, result[key], 'colony');
+                    });
+                }
+
+                this.logEvent(timeline, msgId, 'complete', `Tool ${toolId} completed successfully`);
+                
+                agentClaims.activeTools = agentClaims.activeTools.filter(t => t !== toolId);
+                this.context.set('agent_claims', agentClaims, 'agent');
+                
+                return result;
+            }
+
+            logEvent(timeline, id, type, message) {
+                const event = document.createElement('div');
+                event.className = 'execution-event';
+                event.innerHTML = `
+                    <div class="event-dot ${type}"></div>
+                    <div class="event-header">
+                        <div class="event-type">${type.toUpperCase()}</div>
+                        <div class="event-time">${new Date().toLocaleTimeString()}</div>
+                    </div>
+                    <div class="event-details">${message}</div>
+                `;
+                timeline.appendChild(event);
+                timeline.scrollTop = timeline.scrollHeight;
+            }
+        }
+
+        // Global Instances
+        const bus = new AgentToolBus();
+        const context = new ContextManager();
+        const acl = new CapabilityACL();
+        const orchestrator = new ToolOrchestrator(bus, context, acl);
+
+        // Initialize with sample contracts
+        function initInfrastructure() {
+            const researchContract = new ToolContract({
+                id: 'web-search',
+                version: '1.0.0',
+                schema: 'koloni-tool-v1',
+                input: {
+                    type: 'object',
+                    required: ['query'],
+                    properties: {
+                        query: { type: 'string', minLength: 1 },
+                        limit: { type: 'number', enum: [5, 10, 20] }
+                    }
+                },
+                output: {
+                    type: 'object',
+                    properties: {
+                        results: { type: 'array' },
+                        sources: { type: 'array' }
+                    }
+                },
+                timeout: 10000,
+                requiredContext: ['agent_id'],
+                producesContext: ['search_results'],
+                execute: async (input, ctx) => ({ results: [], sources: [] })
+            });
+
+            const codeContract = new ToolContract({
+                id: 'code-executor',
+                version: '2.0.0',
+                schema: 'koloni-tool-v1',
+                input: {
+                    type: 'object',
+                    required: ['code', 'language'],
+                    properties: {
+                        code: { type: 'string' },
+                        language: { type: 'string', enum: ['python', 'javascript'] }
+                    }
+                },
+                output: {
+                    type: 'object',
+                    properties: {
+                        stdout: { type: 'string' },
+                        stderr: { type: 'string' },
+                        exitCode: { type: 'number' }
+                    }
+                },
+                sandboxLevel: 'container',
+                timeout: 30000,
+                execute: async (input, ctx) => ({ stdout: '', stderr: '', exitCode: 0 })
+            });
+
+            orchestrator.contracts.set('web-search', researchContract);
+            orchestrator.contracts.set('code-executor', codeContract);
+
+            context.set('security_policy', 'strict', 'global');
+            context.set('token_budget', { used: 500, total: 5000 }, 'global');
+            context.set('task_id', 'T-001', 'colony');
+            context.set('agent_id', 'W-001', 'agent');
+            context.set('agent_claims', acl.generateClaims('worker'), 'agent');
+            context.set('scratchpad', {}, 'private');
+
+            console.log('Tool Infrastructure Layer initialized');
+        }
+
+        // UI Functions
+        function switchTab(tabName) {
+            document.querySelectorAll('.arch-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        function toggleValidator() {
+            const panel = document.getElementById('validatorPanel');
+            panel.classList.toggle('active');
+            
+            if (panel.classList.contains('active')) {
+                const results = document.getElementById('validationResults');
+                results.innerHTML = `
+                    <div class="validation-item">
+                        <div class="check-icon check-pass">✓</div>
+                        <div>Schema version supported</div>
+                    </div>
+                    <div class="validation-item">
+                        <div class="check-icon check-pass">✓</div>
+                        <div>Required fields present</div>
+                    </div>
+                    <div class="validation-item">
+                        <div class="check-icon check-warn">!</div>
+                        <div>Output schema missing 'confidence' field (optional)</div>
+                    </div>
+                    <div class="validation-item">
+                        <div class="check-icon check-pass">✓</div>
+                        <div>Type checking enabled</div>
+                    </div>
+                `;
+            }
+        }
+
+        async function simulateToolCall() {
+            try {
+                const result = await orchestrator.execute(
+                    'W-001', 
+                    'web-search', 
+                    { query: 'machine learning trends', limit: 10 },
+                    { timeout: 5000 }
+                );
+                console.log('Tool execution result:', result);
+            } catch (err) {
+                console.error('Tool execution failed:', err.message);
+            }
+        }
+
+        function injectCancellation() {
+            const timeline = document.getElementById('executionTimeline');
+            const event = document.createElement('div');
+            event.className = 'execution-event';
+            event.innerHTML = `
+                <div class="event-dot error"></div>
+                <div class="event-header">
+                    <div class="event-type">CANCEL</div>
+                    <div class="event-time">${new Date().toLocaleTimeString()}</div>
+                </div>
+                <div class="event-details">Injected cancellation token for job-123</div>
+            `;
+            timeline.appendChild(event);
+        }
+
+        function showContextSnapshot() {
+            const snapshot = context.fork();
+            console.log('Context snapshot:', snapshot);
+            
+            const timeline = document.getElementById('executionTimeline');
+            const event = document.createElement('div');
+            event.className = 'execution-event';
+            event.innerHTML = `
+                <div class="event-dot validate"></div>
+                <div class="event-header">
+                    <div class="event-type">SNAPSHOT</div>
+                    <div class="event-time">${new Date().toLocaleTimeString()}</div>
+                </div>
+                <div class="event-details">Forked immutable context snapshot at t=${snapshot.timestamp}</div>
+                <div class="event-context">4 scopes captured: ${Object.keys(snapshot.data).join(', ')}</div>
+            `;
+            timeline.appendChild(event);
+        }
+
+        async function simulatePipeline() {
+            const timeline = document.getElementById('executionTimeline');
+            timeline.innerHTML = '';
+            
+            await orchestrator.execute('W-001', 'web-search', { query: 'AI safety', limit: 5 });
+            context.set('processed_data', { items: 5, sentiment: 'positive' }, 'colony');
+            
+            const event = document.createElement('div');
+            event.className = 'execution-event';
+            event.innerHTML = `
+                <div class="event-dot complete"></div>
+                <div class="event-header">
+                    <div class="event-type">PIPELINE</div>
+                    <div class="event-time">${new Date().toLocaleTimeString()}</div>
+                </div>
+                <div class="event-details">Multi-tool pipeline completed: Search → Process → Store</div>
+                <div class="event-context">Context chain: global.security_policy → colony.task_id → agent.agent_id → private.scratchpad</div>
+            `;
+            timeline.appendChild(event);
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Initialize
+        window.addEventListener('load', initInfrastructure);
+    </script>
+</body>
+</html>
