@@ -65,12 +65,12 @@ export class CapabilityACL {
                 rate_limits:  { network: 1000, filesystem: 1000, compute: 1000 },
             },
             worker: {
-                capabilities: ['tool:research', 'tool:code:readonly', 'tool:filesystem:temp', ...customCaps],
-                rate_limits:  { network: 10, filesystem: 100, compute: 50 },
+                capabilities: ['tool:research', 'tool:code:exec', 'tool:filesystem:temp', ...customCaps],
+                rate_limits:  { research: 100, network: 10, filesystem: 100, compute: 50 },
             },
             drone: {
                 capabilities: ['tool:research', 'tool:audit'],
-                rate_limits:  { network: 0, filesystem: 0, compute: 20 },
+                rate_limits:  { research: 50, network: 0, filesystem: 0, compute: 20 },
             },
             subcolony: {
                 capabilities: ['tool:research', 'tool:code:exec', 'tool:filesystem:isolated'],
@@ -111,8 +111,8 @@ export class CapabilityACL {
 
     _categoryOf(toolId) {
         const map = {
-            'web-search':    'network',
-            'http-client':   'network',
+            'web-search':    'research',   // read-only lookup — not raw network
+            'http-client':   'network',    // raw HTTP — higher privilege
             'file-reader':   'filesystem',
             'code-executor': 'compute',
         };

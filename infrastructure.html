@@ -3,630 +3,673 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Koloni v2.5 — Tool Infrastructure Monitor</title>
-    <link rel="stylesheet" href="./styles/common.css">
+    <title>Koloni — How It Works</title>
+    <link rel="stylesheet" href="./styles/variables.css">
     <style>
-        /* ── Architecture sidebar ────────────────────────────── */
-        .sidebar {
-            width: 400px;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Top bar ─────────────────────────────────────────── */
+        .topbar {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+
+        .back-arrow { font-size: 18px; }
+
+        .topbar-title {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .topbar-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+
+        /* ── Main layout ─────────────────────────────────────── */
+        .layout {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ── Settings sidebar ────────────────────────────────── */
+        .settings-panel {
+            width: 340px;
             background: var(--bg-panel);
             border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 24px 20px;
+            flex-shrink: 0;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+            margin-top: 28px;
+        }
+
+        .section-label:first-child { margin-top: 0; }
+
+        /* Agent picker */
+        .agent-cards {
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            gap: 8px;
         }
 
-        .logo {
+        .agent-card {
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-card);
+        }
+
+        .agent-card:hover  { border-color: var(--accent); }
+        .agent-card.active { border-color: var(--accent); background: rgba(100,255,218,0.06); }
+
+        .agent-card-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
+            gap: 10px;
+            margin-bottom: 4px;
         }
 
-        .logo-icon {
-            width: 40px; height: 40px;
-            background: linear-gradient(135deg, var(--queen-gold), #ffed4e);
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: #000;
+        .agent-emoji { font-size: 20px; }
+
+        .agent-name {
+            font-weight: 700;
+            font-size: 14px;
         }
 
-        .architecture-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .arch-tab {
-            flex: 1;
-            padding: 12px;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 12px;
+        .agent-badge {
+            margin-left: auto;
+            font-size: 10px;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.2s;
-        }
-
-        .arch-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
-        .arch-tab.active {
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: rgba(100,255,218,0.1);
             color: var(--accent);
-            border-bottom: 2px solid var(--accent);
-            background: rgba(100, 255, 218, 0.05);
         }
 
-        .tab-content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
-        .tab-content.active { display: block; }
+        .agent-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
 
-        /* ── Component cards ─────────────────────────────────── */
-        .component-card {
+        .agent-perms {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .perm-tag {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .perm-tag.yes { background: rgba(0,255,127,0.12); color: var(--tool-active); }
+        .perm-tag.no  { background: rgba(255,71,87,0.12);  color: var(--tool-error); }
+        .perm-tag.lim { background: rgba(255,165,0,0.12);  color: #ffa502; }
+
+        /* Parameter sliders */
+        .param-row {
+            margin-bottom: 18px;
+        }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 6px;
+        }
+
+        .param-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .param-value {
+            font-size: 13px;
+            font-family: monospace;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .param-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Forbidden combinations */
+        .forbidden-item {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-            transition: all 0.2s;
-        }
-
-        .component-card:hover { border-color: var(--accent); transform: translateX(4px); }
-
-        .component-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .component-name {
-            font-weight: 600;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .component-meta { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
-
-        /* ── Schema / code blocks ────────────────────────────── */
-        .interface-schema {
-            background: var(--bg-dark);
-            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--tool-error);
             border-radius: 6px;
-            padding: 12px;
-            font-family: 'Courier New', monospace;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .forbidden-title {
+            font-weight: 600;
+            color: var(--tool-error);
+            margin-bottom: 3px;
             font-size: 11px;
-            margin-top: 12px;
-            overflow-x: auto;
         }
 
-        .schema-line { padding: 2px 0; border-left: 2px solid transparent; padding-left: 8px; margin-left: -8px; }
-        .schema-line.required { border-left-color: var(--accent); }
-        .schema-key  { color: var(--accent); }
-        .schema-type { color: #ff79c6; }
-        .schema-desc { color: var(--text-secondary); }
-
-        /* ── Bus visualization ───────────────────────────────── */
-        .bus-visualization {
-            height: 300px;
-            background: var(--bg-dark);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 20px;
+        .forbidden-desc {
+            color: var(--text-secondary);
+            line-height: 1.4;
         }
 
-        .bus-line {
-            position: absolute;
-            top: 50%; left: 10%; right: 10%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--border-color), var(--accent), var(--border-color));
-            background-size: 200% 100%;
-            animation: busFlow 3s linear infinite;
-            border-radius: 2px;
-        }
-
-        @keyframes busFlow {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        /* ── Context tree ────────────────────────────────────── */
-        .context-node {
-            padding: 8px 12px;
-            margin: 4px 0;
-            background: var(--bg-dark);
-            border-left: 3px solid var(--border-color);
-            border-radius: 0 4px 4px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: monospace;
-            font-size: 12px;
-        }
-
-        .context-node.scope-global  { border-left-color: var(--queen-gold); }
-        .context-node.scope-colony  { border-left-color: var(--worker-blue); }
-        .context-node.scope-agent   { border-left-color: var(--accent); }
-        .context-node.scope-private { border-left-color: var(--text-secondary); opacity: 0.7; }
-
-        /* ── Permission matrix ───────────────────────────────── */
-        .perm-matrix {
-            display: grid;
-            grid-template-columns: auto repeat(4, 1fr);
-            gap: 1px;
-            background: var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-            margin-top: 12px;
-        }
-
-        .perm-cell           { background: var(--bg-card);     padding: 10px; font-size: 11px; text-align: center; }
-        .perm-cell.header    { background: var(--bg-elevated);  font-weight: 600; color: var(--accent); }
-        .perm-cell.allowed   { background: rgba(0, 255, 127, 0.1); color: var(--tool-active); font-weight: 700; }
-        .perm-cell.denied    { background: rgba(255, 71, 87, 0.1);  color: var(--tool-error); }
-        .perm-cell.ratelimited { background: rgba(255, 165, 0, 0.1); color: #ffa502; }
-
-        /* ── Validation panel ────────────────────────────────── */
-        .validator-panel {
-            position: absolute;
-            top: 80px; right: 20px;
-            width: 350px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            display: none;
-            z-index: 100;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-
-        .validator-panel.active { display: block; }
-
-        .validation-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            font-size: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .validation-item:last-child { border-bottom: none; }
-
-        .check-icon {
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px;
-        }
-
-        .check-pass { background: rgba(0, 255, 127, 0.2); color: var(--tool-active); }
-        .check-fail { background: rgba(255, 71, 87, 0.2);  color: var(--tool-error); }
-        .check-warn { background: rgba(255, 165, 0, 0.2);  color: #ffa502; }
-
-        /* ── Main workspace ──────────────────────────────────── */
-        .main-container {
+        /* ── Main area ───────────────────────────────────────── */
+        .main-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        .workspace-header {
+        .run-bar {
             background: var(--bg-panel);
             border-bottom: 1px solid var(--border-color);
             padding: 16px 24px;
             display: flex;
-            justify-content: space-between;
+            gap: 12px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
-        .bus-controls { display: flex; gap: 12px; flex-wrap: wrap; }
-
-        /* ── Execution timeline ──────────────────────────────── */
-        .monitor-panel { flex: 1; padding: 24px; overflow-y: auto; background: var(--bg-dark); }
-
-        .execution-timeline { position: relative; padding-left: 30px; }
-
-        .execution-timeline::before {
-            content: '';
-            position: absolute;
-            left: 15px; top: 0; bottom: 0;
-            width: 2px;
-            background: var(--border-color);
+        .run-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 150px;
         }
 
-        .execution-event {
-            position: relative;
-            margin-bottom: 20px;
+        .run-btn:hover { border-color: var(--accent); background: rgba(100,255,218,0.06); }
+        .run-btn.primary { border-color: var(--accent); background: rgba(100,255,218,0.1); }
+
+        .run-btn-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .run-btn-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: left;
+        }
+
+        /* ── Event log ───────────────────────────────────────── */
+        .log-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .log-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+            gap: 12px;
+        }
+
+        .log-empty-icon { font-size: 48px; opacity: 0.4; }
+        .log-empty-text { font-size: 14px; }
+
+        /* Step flow diagram */
+        .pipeline-diagram {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+
+        .pipeline-step {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .pipeline-step.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(100,255,218,0.08);
+        }
+
+        .pipeline-arrow {
+            color: var(--border-color);
+            font-size: 14px;
+            padding: 0 4px;
+        }
+
+        /* Log events */
+        .log-event {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 16px;
-            animation: slideIn 0.3s ease-out;
+            padding: 14px 16px;
+            animation: fadeSlide 0.3s ease-out;
+            border-left: 3px solid var(--border-color);
         }
 
-        .event-dot {
-            position: absolute;
-            left: -23px; top: 20px;
-            width: 12px; height: 12px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: 2px solid var(--bg-dark);
-            box-shadow: 0 0 0 2px var(--accent);
+        .log-event.validate { border-left-color: #ffd700; }
+        .log-event.execute  { border-left-color: var(--worker-blue); }
+        .log-event.complete { border-left-color: var(--tool-active); }
+        .log-event.error    { border-left-color: var(--tool-error); }
+        .log-event.cancel   { border-left-color: var(--tool-error); }
+        .log-event.snapshot { border-left-color: #ffd700; }
+        .log-event.info     { border-left-color: var(--text-secondary); }
+
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        .event-dot.validate { background: #ffd700;          box-shadow: 0 0 0 2px #ffd700; }
-        .event-dot.execute  { background: var(--worker-blue); box-shadow: 0 0 0 2px var(--worker-blue); }
-        .event-dot.complete { background: var(--tool-active);  box-shadow: 0 0 0 2px var(--tool-active); }
-        .event-dot.error    { background: var(--tool-error);   box-shadow: 0 0 0 2px var(--tool-error); }
-
-        .event-header {
+        .log-event-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            gap: 10px;
+            margin-bottom: 4px;
         }
 
-        .event-type    { font-weight: 600; font-size: 13px; }
-        .event-time    { font-size: 11px; color: var(--text-secondary); font-family: monospace; }
-        .event-details { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
-        .event-context {
-            margin-top: 12px;
-            padding: 10px;
-            background: var(--bg-dark);
-            border-radius: 6px;
-            font-family: monospace;
+        .log-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            background: var(--bg-elevated);
+        }
+
+        .log-badge.validate { color: #ffd700; }
+        .log-badge.execute  { color: #7a9fff; }
+        .log-badge.complete { color: var(--tool-active); }
+        .log-badge.error    { color: var(--tool-error); }
+        .log-badge.cancel   { color: var(--tool-error); }
+        .log-badge.snapshot { color: #ffd700; }
+        .log-badge.info     { color: var(--text-secondary); }
+
+        .log-time {
+            margin-left: auto;
             font-size: 11px;
-            border-left: 3px solid var(--accent);
+            color: var(--text-secondary);
+            font-family: monospace;
         }
 
-        /* ── Context flow panels ─────────────────────────────── */
-        .context-flow {
-            position: fixed;
-            bottom: 0; left: 400px; right: 0;
-            height: 250px;
+        .log-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .log-body {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* ── Context strip at bottom ─────────────────────────── */
+        .context-strip {
             background: var(--bg-panel);
             border-top: 1px solid var(--border-color);
             display: flex;
+            height: 180px;
+            flex-shrink: 0;
         }
 
-        .context-panel {
+        .ctx-bucket {
             flex: 1;
             border-right: 1px solid var(--border-color);
-            padding: 16px;
+            padding: 12px 14px;
             overflow-y: auto;
         }
 
-        .context-panel:last-child { border-right: none; }
+        .ctx-bucket:last-child { border-right: none; }
 
-        .context-title {
-            font-size: 11px;
+        .ctx-bucket-title {
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: var(--accent);
-            margin-bottom: 12px;
             font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .context-item {
-            padding: 8px;
-            margin-bottom: 6px;
+        .ctx-bucket-title.global  { color: var(--queen-gold); }
+        .ctx-bucket-title.colony  { color: var(--worker-blue); }
+        .ctx-bucket-title.agent   { color: var(--accent); }
+        .ctx-bucket-title.private { color: var(--text-secondary); }
+
+        .ctx-entry {
             background: var(--bg-dark);
             border-radius: 4px;
-            font-family: monospace;
+            padding: 5px 8px;
+            margin-bottom: 4px;
             font-size: 11px;
+            font-family: monospace;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-left: 2px solid var(--border-color);
+            gap: 8px;
+            border-left: 2px solid transparent;
+            animation: none;
         }
 
-        .context-item.new      { border-left-color: var(--tool-active); animation: ctxHighlight 2s; }
-        .context-item.modified { border-left-color: var(--tool-busy); }
-        .context-item.inherited{ border-left-color: var(--text-secondary); opacity: 0.7; }
+        .ctx-entry.new      { border-left-color: var(--tool-active); animation: ctxIn 2s ease-out; }
+        .ctx-entry.modified { border-left-color: var(--tool-busy); }
 
-        @keyframes ctxHighlight {
-            0%   { background: rgba(0, 255, 127, 0.3); }
+        @keyframes ctxIn {
+            0%   { background: rgba(0,255,127,0.2); }
             100% { background: var(--bg-dark); }
         }
 
-        .context-key   { color: var(--accent); }
-        .context-value { color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+        .ctx-key   { color: var(--accent); white-space: nowrap; }
+        .ctx-val   { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
 
-        .flow-arrow { position: absolute; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--accent); opacity: 0.5; }
+        /* scrollbar */
+        ::-webkit-scrollbar       { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        /* bg-elevated used in log badges */
+        .bg-elevated { background: var(--bg-elevated); }
     </style>
 </head>
 <body>
 
-<!-- ── Architecture sidebar ───────────────────────────────────────────── -->
-<aside class="sidebar">
-    <div class="logo">
-        <div class="logo-icon">K</div>
-        <div>
-            <div style="font-weight:700;">Koloni v2.5</div>
-            <div style="font-size:11px;color:var(--text-secondary);">Tool Infrastructure Layer</div>
-        </div>
-    </div>
+<!-- ── Top navigation bar ────────────────────────────────────────────── -->
+<nav class="topbar">
+    <a href="./index.html" class="back-btn">
+        <span class="back-arrow">←</span> Home
+    </a>
+    <div style="width:1px;height:24px;background:var(--border-color);"></div>
+    <span class="topbar-title">How It Works</span>
+    <span class="topbar-sub">— adjust settings on the left, then press a button to see the system run</span>
+</nav>
 
-    <div class="architecture-tabs">
-        <button class="arch-tab active" data-tab="contract">Contract</button>
-        <button class="arch-tab"        data-tab="bus">Bus</button>
-        <button class="arch-tab"        data-tab="context">Context</button>
-        <button class="arch-tab"        data-tab="acl">ACL</button>
-    </div>
+<div class="layout">
 
-    <!-- Tab: ToolContract -->
-    <div id="tab-contract" class="tab-content active">
-        <div class="component-card">
-            <div class="component-header">
-                <div class="component-name">
-                    <span class="status-dot ready"></span> ToolContract Interface
+    <!-- ── Settings sidebar ──────────────────────────────────────────── -->
+    <aside class="settings-panel">
+
+        <!-- Agent type -->
+        <div class="section-label">Who is running the tools?</div>
+        <div class="agent-cards" id="agentCards">
+
+            <div class="agent-card active" data-type="worker">
+                <div class="agent-card-header">
+                    <span class="agent-emoji">🔧</span>
+                    <span class="agent-name">Worker</span>
+                    <span class="agent-badge">Default</span>
                 </div>
-                <span style="font-size:11px;color:var(--text-secondary);">v1.0.0</span>
+                <div class="agent-desc">A general-purpose worker. Can search and run code, but has usage limits to stay safe.</div>
+                <div class="agent-perms">
+                    <span class="perm-tag yes">Search ✓</span>
+                    <span class="perm-tag yes">Code ✓</span>
+                    <span class="perm-tag lim">Network 10/min</span>
+                    <span class="perm-tag lim">Files (temp)</span>
+                </div>
             </div>
-            <div class="component-meta">Defines the socket that all tools plug into</div>
-            <div class="interface-schema">
-                <div class="schema-line required"><span class="schema-key">id</span>: <span class="schema-type">string</span> <span class="schema-desc">// Unique identifier</span></div>
-                <div class="schema-line required"><span class="schema-key">version</span>: <span class="schema-type">semver</span></div>
-                <div class="schema-line required"><span class="schema-key">schema</span>: <span class="schema-type">"koloni-tool-v1"</span></div>
-                <div class="schema-line required"><span class="schema-key">input</span>: <span class="schema-type">JSONSchema</span></div>
-                <div class="schema-line required"><span class="schema-key">output</span>: <span class="schema-type">JSONSchema</span></div>
-                <div class="schema-line"><span class="schema-key">timeout</span>: <span class="schema-type">number</span> <span class="schema-desc">// ms, default 5000</span></div>
-                <div class="schema-line"><span class="schema-key">sandboxLevel</span>: <span class="schema-type">"none"|"container"|"vm"</span></div>
-                <div class="schema-line required"><span class="schema-key">execute</span>: <span class="schema-type">(input, ctx) =&gt; Promise&lt;output&gt;</span></div>
+
+            <div class="agent-card" data-type="queen">
+                <div class="agent-card-header">
+                    <span class="agent-emoji">👑</span>
+                    <span class="agent-name">Queen</span>
+                    <span class="agent-badge">Admin</span>
+                </div>
+                <div class="agent-desc">The coordinator. Has access to everything — no rate limits. Doesn't run code directly.</div>
+                <div class="agent-perms">
+                    <span class="perm-tag yes">Search ✓</span>
+                    <span class="perm-tag no">Code ✗</span>
+                    <span class="perm-tag yes">Network ✓</span>
+                    <span class="perm-tag yes">Files ✓</span>
+                </div>
             </div>
+
+            <div class="agent-card" data-type="drone">
+                <div class="agent-card-header">
+                    <span class="agent-emoji">🔍</span>
+                    <span class="agent-name">Drone</span>
+                    <span class="agent-badge">Read-only</span>
+                </div>
+                <div class="agent-desc">A lightweight observer. Can only search / read. Cannot run code or touch files.</div>
+                <div class="agent-perms">
+                    <span class="perm-tag yes">Search ✓</span>
+                    <span class="perm-tag no">Code ✗</span>
+                    <span class="perm-tag no">Network ✗</span>
+                    <span class="perm-tag no">Files ✗</span>
+                </div>
+            </div>
+
+            <div class="agent-card" data-type="subcolony">
+                <div class="agent-card-header">
+                    <span class="agent-emoji">🏘️</span>
+                    <span class="agent-name">Sub-Colony</span>
+                    <span class="agent-badge">Isolated</span>
+                </div>
+                <div class="agent-desc">A sandboxed group of workers. Higher limits but fully isolated — can't affect the main colony.</div>
+                <div class="agent-perms">
+                    <span class="perm-tag yes">Search ✓</span>
+                    <span class="perm-tag yes">Code ✓</span>
+                    <span class="perm-tag lim">Network 100/min</span>
+                    <span class="perm-tag lim">Files (isolated)</span>
+                </div>
+            </div>
+
         </div>
 
-        <div class="component-card">
-            <div class="component-header">
-                <div class="component-name"><span class="status-dot busy"></span> SchemaValidator</div>
+        <!-- Tool settings -->
+        <div class="section-label">Tool settings</div>
+
+        <div class="param-row">
+            <div class="param-header">
+                <span class="param-name">Timeout</span>
+                <span class="param-value" id="timeoutDisplay">5 sec</span>
             </div>
-            <div class="component-meta">Pre-flight input validation &amp; output verification</div>
-            <button class="btn" style="width:100%;margin-top:12px;justify-content:center;" id="toggleValidatorBtn">
-                Show Validator Status
+            <div class="param-desc">How long a tool can run before it's automatically stopped. Shorter = faster failures, longer = more patience.</div>
+            <input type="range" id="timeoutSlider" min="1" max="30" value="5" step="1">
+        </div>
+
+        <div class="param-row">
+            <div class="param-header">
+                <span class="param-name">Max Retries</span>
+                <span class="param-value" id="retriesDisplay">3×</span>
+            </div>
+            <div class="param-desc">If a tool fails, how many times should the system try again before giving up?</div>
+            <input type="range" id="retriesSlider" min="0" max="10" value="3" step="1">
+        </div>
+
+        <div class="param-row">
+            <div class="param-header">
+                <span class="param-name">Token Budget</span>
+                <span class="param-value" id="budgetDisplay">5,000</span>
+            </div>
+            <div class="param-desc">The swarm-wide limit on how many tokens can be used. Shared across all agents.</div>
+            <input type="range" id="budgetSlider" min="1000" max="20000" value="5000" step="500">
+        </div>
+
+        <!-- Safety rules -->
+        <div class="section-label">Safety rules (always enforced)</div>
+
+        <div class="forbidden-item">
+            <div class="forbidden-title">🚫 Network + Code Execution</div>
+            <div class="forbidden-desc">A tool can't access the internet AND run code at the same time — prevents data from being secretly sent out.</div>
+        </div>
+
+        <div class="forbidden-item">
+            <div class="forbidden-title">🚫 File Write + Spawn Sub-Colony</div>
+            <div class="forbidden-desc">Can't write files and spawn new agents together — prevents one agent from poisoning others.</div>
+        </div>
+
+        <div class="forbidden-item">
+            <div class="forbidden-title">🚫 Research + Email Send</div>
+            <div class="forbidden-desc">Can't look things up and send email in one step — prevents automated phishing.</div>
+        </div>
+
+    </aside>
+
+    <!-- ── Main content ───────────────────────────────────────────────── -->
+    <div class="main-area">
+
+        <!-- Action buttons -->
+        <div class="run-bar">
+            <button class="run-btn primary" id="btnSimulate">
+                <span class="run-btn-label">▶ Run a Tool</span>
+                <span class="run-btn-desc">Watch the full check &amp; execute cycle</span>
+            </button>
+            <button class="run-btn" id="btnPipeline">
+                <span class="run-btn-label">⚡ Run Pipeline</span>
+                <span class="run-btn-desc">Chain two tools together</span>
+            </button>
+            <button class="run-btn" id="btnSnapshot">
+                <span class="run-btn-label">📸 Save State</span>
+                <span class="run-btn-desc">Take a snapshot of memory</span>
+            </button>
+            <button class="run-btn" id="btnCancel">
+                <span class="run-btn-label">⏹ Cancel Job</span>
+                <span class="run-btn-desc">Stop something mid-run</span>
+            </button>
+            <button class="run-btn" id="btnClear" style="margin-left:auto;min-width:auto;">
+                <span class="run-btn-label" style="color:var(--text-secondary);">🗑 Clear Log</span>
             </button>
         </div>
 
-        <div class="component-card">
-            <div class="component-name">Error Codes</div>
-            <div class="interface-schema">
-                <div class="schema-line"><span class="schema-key">TIMEOUT</span>: <span class="schema-desc">Execution exceeded timeout</span></div>
-                <div class="schema-line"><span class="schema-key">VALIDATION_FAIL</span>: <span class="schema-desc">Input didn't match schema</span></div>
-                <div class="schema-line"><span class="schema-key">PERMISSION_DENIED</span>: <span class="schema-desc">Agent lacks capability</span></div>
-                <div class="schema-line"><span class="schema-key">DEPENDENCY_MISSING</span>: <span class="schema-desc">Required context key absent</span></div>
-                <div class="schema-line"><span class="schema-key">SANDBOX_ESCAPE</span>: <span class="schema-desc">Security policy violation</span></div>
+        <!-- Event log -->
+        <div class="log-area" id="logArea">
+            <div class="log-empty" id="logEmpty">
+                <span class="log-empty-icon">🐝</span>
+                <span class="log-empty-text">Press a button above to see the system in action.<br>Each step will appear here in plain English.</span>
             </div>
         </div>
-    </div>
 
-    <!-- Tab: Message Bus -->
-    <div id="tab-bus" class="tab-content">
-        <div class="bus-visualization">
-            <div class="bus-line"></div>
-        </div>
-
-        <div class="component-card">
-            <div class="component-header">
-                <div class="component-name"><span class="status-dot busy"></span> AgentToolBus</div>
-            </div>
-            <div class="component-meta">Async message queue for non-blocking execution</div>
-            <div style="margin-top:12px;font-size:12px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                    <span>Queue Depth:</span>
-                    <span id="queueDepth" style="font-family:monospace;color:var(--accent);">0</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                    <span>Active Jobs:</span>
-                    <span id="activeJobs" style="font-family:monospace;color:var(--tool-busy);">0</span>
+        <!-- Context memory strip -->
+        <div class="context-strip">
+            <div class="ctx-bucket">
+                <div class="ctx-bucket-title global">🌍 Global Memory</div>
+                <div id="globalCtx">
+                    <div class="ctx-entry"><span class="ctx-key">security</span><span class="ctx-val">strict</span></div>
                 </div>
             </div>
-        </div>
-
-        <div class="component-card">
-            <div class="component-name">Message Types</div>
-            <div class="interface-schema">
-                <div class="schema-line"><span class="schema-key">TOOL_REQUEST</span>: <span class="schema-desc">Agent → Bus</span></div>
-                <div class="schema-line"><span class="schema-key">TOOL_ASSIGNED</span>: <span class="schema-desc">Bus → Worker</span></div>
-                <div class="schema-line"><span class="schema-key">PROGRESS_UPDATE</span>: <span class="schema-desc">Streaming chunks</span></div>
-                <div class="schema-line"><span class="schema-key">TOOL_COMPLETE</span>: <span class="schema-desc">Worker → Bus → Agent</span></div>
-                <div class="schema-line"><span class="schema-key">CANCEL_REQUEST</span>: <span class="schema-desc">Agent aborts job</span></div>
+            <div class="ctx-bucket">
+                <div class="ctx-bucket-title colony">🏛️ Shared Task Data</div>
+                <div id="colonyCtx">
+                    <div class="ctx-entry"><span class="ctx-key">task_id</span><span class="ctx-val">T-001</span></div>
+                </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Tab: Context System -->
-    <div id="tab-context" class="tab-content">
-        <div class="component-card">
-            <div class="component-header">
-                <div class="component-name"><span class="status-dot ready"></span> ContextManager</div>
+            <div class="ctx-bucket">
+                <div class="ctx-bucket-title agent">🤖 Agent Workspace</div>
+                <div id="agentCtx">
+                    <div class="ctx-entry"><span class="ctx-key">agent_id</span><span class="ctx-val">W-001</span></div>
+                </div>
             </div>
-            <div class="component-meta">Shared state with scoping &amp; inheritance</div>
-        </div>
-
-        <div style="font-family:monospace;font-size:12px;">
-            <div class="context-node scope-global">
-                <span>🌍 global</span><span style="color:var(--text-secondary);">shared</span>
-            </div>
-            <div class="context-node scope-colony" style="margin-left:20px;">
-                <span>🏛️ colony</span><span style="color:var(--text-secondary);">inherited</span>
-            </div>
-            <div class="context-node scope-agent" style="margin-left:40px;">
-                <span>🤖 agent</span><span style="color:var(--text-secondary);">isolated</span>
-            </div>
-            <div class="context-node scope-private" style="margin-left:60px;">
-                <span>🔒 private</span><span style="color:var(--text-secondary);">tool-only</span>
-            </div>
-        </div>
-
-        <div class="component-card" style="margin-top:20px;">
-            <div class="component-name">Scope Descriptions</div>
-            <div style="margin-top:12px;font-size:12px;line-height:1.8;">
-                <div><strong style="color:var(--queen-gold);">GLOBAL:</strong> Swarm-wide (security policies, token budgets)</div>
-                <div><strong style="color:var(--worker-blue);">COLONY:</strong> Task-specific (intermediate results)</div>
-                <div><strong style="color:var(--accent);">AGENT:</strong> Agent workspace (capabilities, claims)</div>
-                <div><strong style="color:var(--text-secondary);">PRIVATE:</strong> Tool-only (auto-cleanup)</div>
-            </div>
-        </div>
-
-        <div class="component-card">
-            <div class="component-name">Context Operations</div>
-            <div class="interface-schema">
-                <div class="schema-line"><span class="schema-key">get(key, scope?)</span>: <span class="schema-desc">Read with inheritance → {value, scope}</span></div>
-                <div class="schema-line"><span class="schema-key">getValue(key)</span>: <span class="schema-desc">Read raw value (convenience)</span></div>
-                <div class="schema-line"><span class="schema-key">set(key, value, scope)</span>: <span class="schema-desc">Write to specific scope</span></div>
-                <div class="schema-line"><span class="schema-key">fork()</span>: <span class="schema-desc">Immutable snapshot</span></div>
-                <div class="schema-line"><span class="schema-key">merge(snapshot)</span>: <span class="schema-desc">Restore from snapshot</span></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tab: ACL -->
-    <div id="tab-acl" class="tab-content">
-        <div class="component-card">
-            <div class="component-header">
-                <div class="component-name"><span class="status-dot ready"></span> CapabilityACL</div>
-            </div>
-            <div class="component-meta">Token-based permission matrix</div>
-
-            <div class="perm-matrix">
-                <div class="perm-cell header">Agent \ Tool</div>
-                <div class="perm-cell header">Research</div>
-                <div class="perm-cell header">CodeExec</div>
-                <div class="perm-cell header">Network</div>
-                <div class="perm-cell header">FileSys</div>
-
-                <div class="perm-cell header">Queen</div>
-                <div class="perm-cell allowed">✓</div>
-                <div class="perm-cell denied">✕</div>
-                <div class="perm-cell allowed">✓</div>
-                <div class="perm-cell allowed">✓</div>
-
-                <div class="perm-cell header">Worker</div>
-                <div class="perm-cell allowed">✓</div>
-                <div class="perm-cell allowed">✓</div>
-                <div class="perm-cell ratelimited">10/m</div>
-                <div class="perm-cell ratelimited">tmp</div>
-
-                <div class="perm-cell header">Drone</div>
-                <div class="perm-cell allowed">✓</div>
-                <div class="perm-cell denied">✕</div>
-                <div class="perm-cell denied">✕</div>
-                <div class="perm-cell denied">✕</div>
-
-                <div class="perm-cell header">SubColony</div>
-                <div class="perm-cell allowed">✓</div>
-                <div class="perm-cell allowed">✓</div>
-                <div class="perm-cell ratelimited">100/m</div>
-                <div class="perm-cell ratelimited">iso</div>
-            </div>
-        </div>
-
-        <div class="component-card">
-            <div class="component-name">JWT Capability Claims</div>
-            <div class="interface-schema">
-                <div class="schema-line"><span class="schema-key">sub</span>: <span class="schema-type">agent_id</span></div>
-                <div class="schema-line"><span class="schema-key">capabilities</span>: <span class="schema-type">string[]</span> <span class="schema-desc">// ["tool:research"]</span></div>
-                <div class="schema-line"><span class="schema-key">rate_limits</span>: <span class="schema-type">object</span></div>
-                <div class="schema-line"><span class="schema-key">exp</span>: <span class="schema-type">epoch</span> <span class="schema-desc">// Session TTL</span></div>
-            </div>
-        </div>
-
-        <div class="component-card">
-            <div class="component-name">Forbidden Combinations</div>
-            <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);line-height:1.8;">
-                <div style="color:var(--tool-error);margin-bottom:8px;">🔒 Security Policy Blocks:</div>
-                <div>• Network + CodeExec (prevents data exfiltration)</div>
-                <div>• FileSystem:write + SubColonySpawn (prevents poisoning)</div>
-                <div>• Research + Email:send (prevents phishing)</div>
-            </div>
-        </div>
-    </div>
-</aside>
-
-<!-- ── Main workspace ─────────────────────────────────────────────────── -->
-<main class="main-container">
-    <div class="workspace-header">
-        <div>
-            <div style="font-weight:600;font-size:16px;">Tool Infrastructure Monitor</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
-                Bus: <span style="color:var(--accent);">Active</span> &bull;
-                Context: <span style="color:var(--accent);">Shared</span> &bull;
-                ACL: <span style="color:var(--accent);">Enforcing</span>
-            </div>
-        </div>
-        <div class="bus-controls">
-            <button class="btn" id="btnSimulate">▶ Simulate Tool Call</button>
-            <button class="btn" id="btnCancel">⏹ Inject Cancel</button>
-            <button class="btn" id="btnSnapshot">📸 Context Snapshot</button>
-            <button class="btn btn-accent" id="btnPipeline">⚡ Run Pipeline</button>
-        </div>
-    </div>
-
-    <div class="monitor-panel">
-        <div class="execution-timeline" id="executionTimeline">
-            <div style="text-align:center;color:var(--text-secondary);padding:40px;">
-                Click "Simulate Tool Call" or "Run Pipeline" to see the infrastructure in action
-            </div>
-        </div>
-    </div>
-
-    <!-- Context flow panels -->
-    <div class="context-flow">
-        <div class="context-panel">
-            <div class="context-title">🔒 Private (Tool)</div>
-            <div id="privateContext">
-                <div class="context-item inherited">
-                    <span class="context-key">scratchpad</span>
-                    <span class="context-value">{}</span>
+            <div class="ctx-bucket">
+                <div class="ctx-bucket-title private">🔒 Tool Scratchpad</div>
+                <div id="privateCtx">
+                    <div class="ctx-entry"><span class="ctx-key">scratchpad</span><span class="ctx-val">{}</span></div>
                 </div>
             </div>
         </div>
-        <div class="flow-arrow" style="left:25%;">→</div>
 
-        <div class="context-panel">
-            <div class="context-title">🤖 Agent Scope</div>
-            <div id="agentContext">
-                <div class="context-item inherited">
-                    <span class="context-key">agent_id</span>
-                    <span class="context-value">W-001</span>
-                </div>
-            </div>
-        </div>
-        <div class="flow-arrow" style="left:50%;">→</div>
+    </div><!-- /main-area -->
 
-        <div class="context-panel">
-            <div class="context-title">🏛️ Colony Scope</div>
-            <div id="colonyContext">
-                <div class="context-item inherited">
-                    <span class="context-key">task_id</span>
-                    <span class="context-value">T-001</span>
-                </div>
-            </div>
-        </div>
-        <div class="flow-arrow" style="left:75%;">→</div>
-
-        <div class="context-panel">
-            <div class="context-title">🌍 Global Scope</div>
-            <div id="globalContext">
-                <div class="context-item inherited">
-                    <span class="context-key">security_policy</span>
-                    <span class="context-value">strict</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</main>
-
-<!-- Schema validator panel -->
-<div class="validator-panel" id="validatorPanel">
-    <div style="font-weight:600;margin-bottom:12px;color:var(--accent);">Schema Validation</div>
-    <div id="validationResults"></div>
-</div>
+</div><!-- /layout -->
 
 <script type="module">
 import { ToolContract }     from './src/core/ToolContract.js';
@@ -635,218 +678,224 @@ import { AgentToolBus }     from './src/core/AgentToolBus.js';
 import { CapabilityACL }    from './src/core/CapabilityACL.js';
 import { ToolOrchestrator } from './src/core/ToolOrchestrator.js';
 
-// ── Context: UI-aware subclass ─────────────────────────────────────────
-class UIContextManager extends ContextManager {
-    constructor() {
-        // Pass UI update hook to base class
-        super((scope, key, value, isNew) => this._updatePanel(scope, key, value, isNew));
-    }
+// ── Friendly event descriptions ────────────────────────────────────────
+const FRIENDLY = {
+    validate: {
+        'Checking agent capabilities...':   { title: 'Permission check',      body: 'Making sure this agent is allowed to use this tool.' },
+        'Validating input schema...':        { title: 'Input check',            body: 'Confirming the data being sent to the tool is in the right format.' },
+        'Preparing execution context...':    { title: 'Setting up workspace',   body: 'Creating a safe, scoped memory space for this tool call.' },
+        'Dispatching tool...':               { title: 'Sending to queue',        body: 'The request is on its way to the message bus to be picked up and executed.' },
+        'Propagating context outputs...':    { title: 'Saving results to memory', body: 'Storing the output so other agents in the colony can use it.' },
+    },
+    complete: (toolId) => ({ title: `✅ Done — ${toolId}`, body: 'The tool finished successfully and results are now in shared memory.' }),
+    error:    (reason) => ({ title: `❌ Blocked — ${reason}`, body: friendlyError(reason) }),
+};
 
-    _panelId(scope) {
-        return { private: 'privateContext', agent: 'agentContext',
-                 colony: 'colonyContext',   global: 'globalContext' }[scope];
-    }
+function friendlyError(reason) {
+    const map = {
+        PERMISSION_DENIED:   'This agent type doesn\'t have permission to use that tool. Try switching to a higher-privilege agent (like Worker or Queen).',
+        VALIDATION_FAIL:     'The data sent to the tool was missing something or in the wrong format.',
+        TIMEOUT:             'The tool took too long to respond. Try increasing the timeout slider.',
+        DEPENDENCY_MISSING:  'The tool needed something from memory that wasn\'t there yet.',
+        RATE_LIMIT_EXCEEDED: 'This agent has hit its usage limit. Wait a moment or switch to a less-restricted agent type.',
+    };
+    return map[reason] || `Something went wrong: ${reason}`;
+}
 
-    _updatePanel(scope, key, value, isNew) {
-        const panel = document.getElementById(this._panelId(scope));
-        if (!panel) return;
+// ── Context manager with UI hook ───────────────────────────────────────
+const panelMap = {
+    global: 'globalCtx', colony: 'colonyCtx',
+    agent:  'agentCtx',  private: 'privateCtx',
+};
 
-        const valueStr = JSON.stringify(value).substring(0, 30);
-        let item = Array.from(panel.children).find(el =>
-            el.querySelector('.context-key')?.textContent === key
-        );
+const context = new ContextManager((scope, key, value, isNew) => {
+    const panel = document.getElementById(panelMap[scope]);
+    if (!panel) return;
 
-        if (item) {
-            item.className = 'context-item modified';
-            item.querySelector('.context-value').textContent = valueStr;
-        } else {
-            item = document.createElement('div');
-            item.className = `context-item ${isNew ? 'new' : 'modified'}`;
-            item.innerHTML = `<span class="context-key">${key}</span>
-                              <span class="context-value">${valueStr}</span>`;
-            panel.appendChild(item);
-        }
+    const valStr = JSON.stringify(value).substring(0, 25);
+    let item = Array.from(panel.children).find(el =>
+        el.querySelector('.ctx-key')?.textContent === key
+    );
 
+    if (item) {
+        item.className = 'ctx-entry modified';
+        item.querySelector('.ctx-val').textContent = valStr;
+    } else {
+        item = document.createElement('div');
+        item.className = `ctx-entry ${isNew ? 'new' : 'modified'}`;
+        item.innerHTML = `<span class="ctx-key">${key}</span><span class="ctx-val">${valStr}</span>`;
+        panel.appendChild(item);
         if (isNew) setTimeout(() => item.classList.remove('new'), 2000);
     }
-}
+});
 
-// ── Bus: UI-aware subclass ─────────────────────────────────────────────
-class UIAgentToolBus extends AgentToolBus {
-    constructor() {
-        super((queueDepth, activeJobs) => {
-            document.getElementById('queueDepth').textContent = queueDepth;
-            document.getElementById('activeJobs').textContent = activeJobs;
-        });
+const acl = new CapabilityACL();
+const bus = new AgentToolBus();
+
+// ── Orchestrator with friendly logger ─────────────────────────────────
+const orchestrator = new ToolOrchestrator(bus, context, acl, (execId, type, message) => {
+    const friendly = FRIENDLY.validate?.[message];
+    if (friendly) {
+        addEvent(type, friendly.title, friendly.body);
+    } else if (type === 'complete' && message.startsWith('Tool ')) {
+        const toolId = message.replace('Tool ', '').replace(' completed successfully', '');
+        const f = FRIENDLY.complete(toolId);
+        addEvent(type, f.title, f.body);
+    } else if (type === 'error') {
+        const reason = message.replace('ACL Denied: ', '').replace('Validation Failed: ', '');
+        const f = FRIENDLY.error(reason);
+        addEvent(type, f.title, f.body);
+    } else {
+        addEvent(type, message, '');
     }
-}
-
-// ── Orchestrator: UI-aware subclass ───────────────────────────────────
-class UIToolOrchestrator extends ToolOrchestrator {
-    constructor(bus, context, acl) {
-        super(bus, context, acl, (execId, type, message) => this._logEvent(type, message));
-    }
-
-    _logEvent(type, message) {
-        const timeline = document.getElementById('executionTimeline');
-        const event    = document.createElement('div');
-        event.className = 'execution-event';
-        event.innerHTML = `
-            <div class="event-dot ${type}"></div>
-            <div class="event-header">
-                <div class="event-type">${type.toUpperCase()}</div>
-                <div class="event-time">${new Date().toLocaleTimeString()}</div>
-            </div>
-            <div class="event-details">${message}</div>`;
-        timeline.appendChild(event);
-        timeline.scrollTop = timeline.scrollHeight;
-    }
-}
-
-// ── Infrastructure instances ───────────────────────────────────────────
-const context      = new UIContextManager();
-const acl          = new CapabilityACL();
-const bus          = new UIAgentToolBus();
-const orchestrator = new UIToolOrchestrator(bus, context, acl);
+});
 
 // ── Register stub contracts ────────────────────────────────────────────
-const webSearchContract = new ToolContract({
+orchestrator.registerContract(new ToolContract({
     id: 'web-search', version: '1.0.0', schema: 'koloni-tool-v1',
-    input: {
-        type: 'object',
-        required: ['query'],
-        properties: {
-            query: { type: 'string' },
-            limit: { type: 'number', enum: [5, 10, 20] },
-        },
-    },
+    input:  { type: 'object', required: ['query'] },
     output: { type: 'object' },
     timeout: 10000,
-    requiredContext:  ['agent_id'],
-    producesContext:  ['search_results'],
-    execute: async (input, ctx) => ({ results: [], sources: [], query: input.query }),
-});
+    requiredContext: ['agent_id'],
+    execute: async (input) => ({ results: [], query: input.query }),
+}));
 
-const codeContract = new ToolContract({
+orchestrator.registerContract(new ToolContract({
     id: 'code-executor', version: '2.0.0', schema: 'koloni-tool-v1',
-    input: {
-        type: 'object',
-        required: ['code', 'language'],
-        properties: {
-            code:     { type: 'string' },
-            language: { type: 'string', enum: ['python', 'javascript'] },
-        },
-    },
+    input:  { type: 'object', required: ['code', 'language'],
+              properties: { code: { type: 'string' }, language: { type: 'string', enum: ['python', 'javascript'] } } },
     output: { type: 'object' },
-    sandboxLevel: 'container',
     timeout: 30000,
-    execute: async (input, ctx) => ({ stdout: '', stderr: '', exitCode: 0 }),
-});
+    execute: async (input) => ({ stdout: '', stderr: '', exitCode: 0 }),
+}));
 
-orchestrator.registerContract(webSearchContract);
-orchestrator.registerContract(codeContract);
+// ── State ──────────────────────────────────────────────────────────────
+let currentAgentType = 'worker';
+let timeoutSec  = 5;
+let maxRetries  = 3;
+let tokenBudget = 5000;
 
-// ── Seed initial context ───────────────────────────────────────────────
-function initContext() {
-    context.set('security_policy', 'strict',                              'global');
-    context.set('token_budget',    { used: 500, total: 5000 },            'global');
-    context.set('task_id',         'T-001',                               'colony');
-    context.set('agent_id',        'W-001',                               'agent');
-    context.set('agent_claims',    acl.generateClaims('worker'),           'agent');
-    context.set('scratchpad',      {},                                    'private');
+function applyContext() {
+    context.scopes.global.clear();
+    context.scopes.colony.clear();
+    context.scopes.agent.clear();
+    context.scopes.private.clear();
+
+    context.set('security_policy', 'strict', 'global');
+    context.set('token_budget',    { used: 0, total: tokenBudget }, 'global');
+    context.set('task_id',         'T-001',  'colony');
+    context.set('agent_id',        currentAgentType === 'queen'      ? 'Q-001' :
+                                   currentAgentType === 'subcolony'  ? 'SC-001' :
+                                   currentAgentType === 'drone'      ? 'D-001' : 'W-001', 'agent');
+    context.set('agent_claims', acl.generateClaims(currentAgentType), 'agent');
+    context.set('scratchpad',   {},  'private');
 }
 
-// ── Tab switching ──────────────────────────────────────────────────────
-document.querySelectorAll('.arch-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        document.querySelectorAll('.arch-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+// ── Log helpers ────────────────────────────────────────────────────────
+function addEvent(type, title, body) {
+    const area  = document.getElementById('logArea');
+    const empty = document.getElementById('logEmpty');
+    if (empty) empty.remove();
+
+    const el = document.createElement('div');
+    el.className = `log-event ${type}`;
+    el.innerHTML = `
+        <div class="log-event-header">
+            <span class="log-badge ${type}">${type}</span>
+            ${title ? `<span class="log-title">${title}</span>` : ''}
+            <span class="log-time">${new Date().toLocaleTimeString()}</span>
+        </div>
+        ${body ? `<div class="log-body">${body}</div>` : ''}`;
+    area.appendChild(el);
+    area.scrollTop = area.scrollHeight;
+}
+
+function clearLog() {
+    const area = document.getElementById('logArea');
+    area.innerHTML = `
+        <div class="log-empty" id="logEmpty">
+            <span class="log-empty-icon">🐝</span>
+            <span class="log-empty-text">Press a button above to see the system in action.<br>Each step will appear here in plain English.</span>
+        </div>`;
+}
+
+// ── Agent picker ───────────────────────────────────────────────────────
+document.querySelectorAll('.agent-card').forEach(card => {
+    card.addEventListener('click', () => {
+        document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        currentAgentType = card.dataset.type;
+        applyContext();
+        addEvent('info', `Switched to ${card.querySelector('.agent-name').textContent}`,
+            card.querySelector('.agent-desc').textContent);
     });
 });
 
-// ── Control buttons ────────────────────────────────────────────────────
+// ── Sliders ────────────────────────────────────────────────────────────
+document.getElementById('timeoutSlider').addEventListener('input', (e) => {
+    timeoutSec = +e.target.value;
+    document.getElementById('timeoutDisplay').textContent = `${timeoutSec} sec`;
+});
+
+document.getElementById('retriesSlider').addEventListener('input', (e) => {
+    maxRetries = +e.target.value;
+    document.getElementById('retriesDisplay').textContent = `${maxRetries}×`;
+});
+
+document.getElementById('budgetSlider').addEventListener('input', (e) => {
+    tokenBudget = +e.target.value;
+    document.getElementById('budgetDisplay').textContent = tokenBudget.toLocaleString();
+    context.set('token_budget', { used: 0, total: tokenBudget }, 'global');
+});
+
+// ── Buttons ────────────────────────────────────────────────────────────
 document.getElementById('btnSimulate').addEventListener('click', async () => {
+    addEvent('info', 'Starting a web-search tool call…', `Using agent type: ${currentAgentType} · timeout: ${timeoutSec}s`);
     try {
-        await orchestrator.execute('W-001', 'web-search',
-            { query: 'machine learning trends', limit: 10 }, { timeout: 8000 });
+        await orchestrator.execute(
+            context.getValue('agent_id'),
+            'web-search',
+            { query: 'machine learning trends' },
+            { timeout: timeoutSec * 1000, maxRetries }
+        );
     } catch (err) {
-        console.error('Simulation failed:', err.message);
+        const f = FRIENDLY.error(err.message);
+        addEvent('error', f.title, f.body);
     }
-});
-
-document.getElementById('btnCancel').addEventListener('click', () => {
-    const timeline = document.getElementById('executionTimeline');
-    const el = document.createElement('div');
-    el.className = 'execution-event';
-    el.innerHTML = `
-        <div class="event-dot error"></div>
-        <div class="event-header">
-            <div class="event-type">CANCEL</div>
-            <div class="event-time">${new Date().toLocaleTimeString()}</div>
-        </div>
-        <div class="event-details">Injected cancellation token — in-flight jobs signalled to abort</div>`;
-    timeline.appendChild(el);
-    timeline.scrollTop = timeline.scrollHeight;
-});
-
-document.getElementById('btnSnapshot').addEventListener('click', () => {
-    const snapshot = context.fork();
-    const timeline = document.getElementById('executionTimeline');
-    const el = document.createElement('div');
-    el.className = 'execution-event';
-    el.innerHTML = `
-        <div class="event-dot validate"></div>
-        <div class="event-header">
-            <div class="event-type">SNAPSHOT</div>
-            <div class="event-time">${new Date().toLocaleTimeString()}</div>
-        </div>
-        <div class="event-details">Forked immutable context snapshot at t=${snapshot.timestamp}</div>
-        <div class="event-context">Scopes captured: ${Object.keys(snapshot.data).join(', ')}</div>`;
-    timeline.appendChild(el);
-    timeline.scrollTop = timeline.scrollHeight;
 });
 
 document.getElementById('btnPipeline').addEventListener('click', async () => {
-    document.getElementById('executionTimeline').innerHTML = '';
+    addEvent('info', 'Starting a 2-step pipeline…', 'Step 1: Search → Step 2: Save results to shared memory');
     try {
-        await orchestrator.execute('W-001', 'web-search', { query: 'AI safety', limit: 5 });
-        context.set('processed_data', { items: 5, sentiment: 'positive' }, 'colony');
-
-        const timeline = document.getElementById('executionTimeline');
-        const el = document.createElement('div');
-        el.className = 'execution-event';
-        el.innerHTML = `
-            <div class="event-dot complete"></div>
-            <div class="event-header">
-                <div class="event-type">PIPELINE COMPLETE</div>
-                <div class="event-time">${new Date().toLocaleTimeString()}</div>
-            </div>
-            <div class="event-details">Multi-tool pipeline finished: Search → Process → Store</div>
-            <div class="event-context">Context chain: global.security_policy → colony.task_id → agent.agent_id → private.scratchpad</div>`;
-        timeline.appendChild(el);
+        await orchestrator.execute(
+            context.getValue('agent_id'),
+            'web-search',
+            { query: 'AI safety research' },
+            { timeout: timeoutSec * 1000, maxRetries }
+        );
+        context.set('pipeline_output', { status: 'complete', items: 5 }, 'colony');
+        addEvent('complete', '✅ Pipeline finished', 'Both steps ran. Results are now in "Shared Task Data" memory below.');
     } catch (err) {
-        console.error('Pipeline failed:', err.message);
+        const f = FRIENDLY.error(err.message);
+        addEvent('error', f.title, f.body);
     }
 });
 
-// ── Validator panel ────────────────────────────────────────────────────
-document.getElementById('toggleValidatorBtn').addEventListener('click', () => {
-    const panel = document.getElementById('validatorPanel');
-    panel.classList.toggle('active');
-
-    if (panel.classList.contains('active')) {
-        document.getElementById('validationResults').innerHTML = `
-            <div class="validation-item"><div class="check-icon check-pass">✓</div><div>Schema version koloni-tool-v1 supported</div></div>
-            <div class="validation-item"><div class="check-icon check-pass">✓</div><div>Required fields present (id, version, schema, input, output, execute)</div></div>
-            <div class="validation-item"><div class="check-icon check-warn">!</div><div>Output schema missing 'confidence' (optional)</div></div>
-            <div class="validation-item"><div class="check-icon check-pass">✓</div><div>Type checking enabled</div></div>`;
-    }
+document.getElementById('btnSnapshot').addEventListener('click', () => {
+    const snap = context.fork();
+    addEvent('snapshot', '📸 Memory snapshot saved',
+        `Captured all 4 memory scopes at ${new Date(snap.timestamp).toLocaleTimeString()}. You can restore to this point later.`);
 });
+
+document.getElementById('btnCancel').addEventListener('click', () => {
+    addEvent('cancel', '⏹ Cancellation signal sent',
+        'Any tool currently running has been told to stop. Jobs already queued will be skipped.');
+});
+
+document.getElementById('btnClear').addEventListener('click', clearLog);
 
 // ── Init ───────────────────────────────────────────────────────────────
-initContext();
+applyContext();
 </script>
 </body>
 </html>
