@@ -3,669 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Koloni Swarm Intelligence System v2.5</title>
+    <title>Koloni Swarm v2.5</title>
+    <link rel="stylesheet" href="./styles/variables.css">
     <style>
-        :root {
-            --queen-gold: #FFD700;
-            --worker-blue: #4169E1;
-            --worker-code: #00CED1;
-            --worker-research: #9370DB;
-            --worker-creative: #FF69B4;
-            --worker-analyst: #20B2AA;
-            --tool-active: #00FF7F;
-            --tool-error: #FF4757;
-            --bg-dark: #0a0a0f;
-            --bg-panel: #13131f;
-            --bg-card: #1a1a2e;
-            --text-primary: #e0e0e0;
-            --text-secondary: #8892b0;
-            --border-color: #2d2d3d;
-            --accent: #64ffda;
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-        }
-
-        /* Main Chat Interface (What users see) */
-        .main-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .chat-header {
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border-color);
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .colony-info { display: flex; align-items: center; gap: 16px; }
-
-        .colony-id {
-            font-family: monospace;
-            font-size: 12px;
-            color: var(--accent);
-            background: rgba(100, 255, 218, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .message {
-            max-width: 80%;
-            padding: 16px 20px;
-            border-radius: 12px;
-            animation: messageSlide 0.3s ease-out;
-        }
-
-        @keyframes messageSlide {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message-user {
-            align-self: flex-end;
-            background: linear-gradient(135deg, var(--worker-blue), #3457c4);
-            color: white;
-        }
-
-        .message-system {
-            align-self: flex-start;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-        }
-
-        .message-tool {
-            align-self: flex-start;
-            background: rgba(0, 255, 127, 0.1);
-            border: 1px solid var(--tool-active);
-            font-family: monospace;
-            font-size: 12px;
-        }
-
-        .input-container {
-            background: var(--bg-panel);
-            border-top: 1px solid var(--border-color);
-            padding: 20px 24px;
-        }
-
-        .input-wrapper {
-            max-width: 800px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .chat-input {
-            width: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 120px 16px 16px;
-            color: var(--text-primary);
-            font-size: 15px;
-            resize: none;
-            min-height: 56px;
-        }
-
-        .chat-input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        .input-actions {
-            position: absolute;
-            right: 8px;
-            bottom: 8px;
-            display: flex;
-            gap: 8px;
-        }
-
-        .icon-btn {
-            width: 40px;
-            height: 40px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-dark);
-            color: var(--text-secondary);
-            border-radius: 8px;
-            cursor: pointer;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
         }
 
-        .icon-btn:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        .send-btn {
-            background: var(--accent);
-            color: #000;
-            border: none;
-            font-weight: 600;
-        }
-
-        /* Tool Management Sidebar (Right side) */
-        .tool-sidebar {
-            width: 380px;
-            background: var(--bg-panel);
-            border-left: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .tool-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Upload Zone */
-        .upload-zone {
-            margin: 20px;
-            padding: 24px;
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
+        .landing {
             text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
+            max-width: 680px;
+            padding: 40px 24px;
         }
 
-        .upload-zone:hover, .upload-zone.drag-active {
-            border-color: var(--accent);
-            background: rgba(100, 255, 218, 0.05);
+        .logo-hex {
+            width: 72px; height: 72px;
+            background: linear-gradient(135deg, var(--queen-gold), #ffed4e);
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px; font-weight: 900; color: #000;
+            margin: 0 auto 24px;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
         }
 
-        .tool-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 20px;
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--queen-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
         }
 
-        .tool-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+            line-height: 1.6;
         }
 
-        .tool-card:hover { border-color: var(--accent); }
-        .tool-card.active { border-left-color: var(--tool-active); }
-        .tool-card.error { border-left-color: var(--tool-error); }
-
-        .tool-status {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--text-secondary);
-            margin-right: 8px;
+        .views {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 48px;
         }
 
-        .tool-status.ready { background: var(--tool-active); box-shadow: 0 0 8px var(--tool-active); }
-        .tool-status.error { background: var(--tool-error); }
-
-        /* Modal for Tool Details */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-overlay.active { display: flex; }
-
-        .modal {
+        .view-card {
             background: var(--bg-panel);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            padding: 24px;
+            padding: 28px 24px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.25s;
+            display: block;
         }
 
-        .hidden { display: none !important; }
+        .view-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(100, 255, 218, 0.12);
+        }
+
+        .view-icon  { font-size: 36px; margin-bottom: 16px; }
+        .view-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+        .view-desc  { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+        .components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .chip {
+            font-size: 11px;
+            font-family: monospace;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 5px 12px;
+            color: var(--accent);
+        }
+
+        .notice {
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px 18px;
+            text-align: left;
+            line-height: 1.7;
+        }
+
+        .notice code {
+            font-family: monospace;
+            background: var(--bg-dark);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--queen-gold);
+        }
     </style>
 </head>
 <body>
+<div class="landing">
+    <div class="logo-hex">K</div>
 
-    <!-- MAIN CHAT INTERFACE (Left Side) -->
-    <main class="main-container">
-        <header class="chat-header">
-            <div class="colony-info">
-                <div class="colony-id" id="colonyId">C-DEV-—</div>
-                <div style="font-size: 13px; color: var(--text-secondary);">
-                    Koloni Swarm v2.5 • <span id="activeToolCount">0</span> Tools Ready
-                </div>
+    <h1>Koloni Swarm v2.5</h1>
+
+    <p class="subtitle">
+        A swarm intelligence orchestration system.<br>
+        Contract-based tools &bull; async message bus &bull; 4-scope context &bull; capability ACL.
+    </p>
+
+    <div class="views">
+        <a href="./chat.html" class="view-card">
+            <div class="view-icon">🐝</div>
+            <div class="view-title">Chat Interface</div>
+            <div class="view-desc">
+                Interact with registered tools through a conversational UI.
+                Upload custom tools or test the built-in stubs.
             </div>
-            <button onclick="toggleToolSidebar()" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer;">
-                🔧 Tools
-            </button>
-        </header>
-
-        <div class="chat-messages" id="chatMessages">
-            <div class="message message-system">
-                <strong>🐝 Koloni Swarm v2.5 Active</strong><br>
-                Infrastructure layer loaded. Upload tools via the sidebar, then ask me to use them.<br><br>
-                Try: "Search for the latest AI research" (uses web-search tool)<br>
-                Or: "Calculate 2+2" (uses code-executor tool)
+        </a>
+        <a href="./infrastructure.html" class="view-card">
+            <div class="view-icon">🏗️</div>
+            <div class="view-title">Infrastructure Monitor</div>
+            <div class="view-desc">
+                Visualize the Tool Infrastructure Layer — contracts, bus metrics,
+                context scopes, and ACL policies in real time.
             </div>
-        </div>
-
-        <div class="input-container">
-            <div class="input-wrapper">
-                <textarea class="chat-input" id="chatInput" placeholder="Ask me anything, or request a specific tool..." rows="1"></textarea>
-                <div class="input-actions">
-                    <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Upload Tool">
-                        📦
-                    </button>
-                    <button class="icon-btn send-btn" onclick="submitQuery()">
-                        Send
-                    </button>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- TOOL MANAGEMENT SIDEBAR (Right Side) -->
-    <aside class="tool-sidebar" id="toolSidebar">
-        <div class="tool-header">
-            <div>Tool Registry</div>
-            <button onclick="runAllTests()" style="font-size: 12px; padding: 6px 12px; background: var(--accent); border: none; color: #000; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                Test All
-            </button>
-        </div>
-
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-            <div style="font-size: 24px; margin-bottom: 8px;">📥</div>
-            <div style="font-size: 13px; color: var(--text-secondary);">Drop tools here or click to upload</div>
-            <div style="font-size: 11px; color: var(--text-secondary); opacity: 0.7; margin-top: 4px;">.js .json .py supported</div>
-        </div>
-
-        <input type="file" id="fileInput" class="hidden" multiple accept=".js,.json,.py" onchange="handleFiles(this.files)">
-
-        <div class="tool-list" id="toolList">
-            <!-- Tools populated here -->
-            <div style="text-align: center; color: var(--text-secondary); padding: 40px; font-size: 13px;">
-                No tools registered yet.<br>Upload a tool to get started.
-            </div>
-        </div>
-    </aside>
-
-    <!-- Tool Details Modal -->
-    <div class="modal-overlay" id="toolModal">
-        <div class="modal">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 id="modalToolName">Tool Details</h3>
-                <button onclick="closeModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;">×</button>
-            </div>
-            <div id="modalContent"></div>
-        </div>
+        </a>
     </div>
 
-    <script>
-        // ==========================================
-        // KOLONI SWARM v2.5 - MAIN APPLICATION
-        // Chat Interface + Tool Infrastructure Integration
-        // ==========================================
+    <div class="components">
+        <span class="chip">ToolContract</span>
+        <span class="chip">AgentToolBus</span>
+        <span class="chip">ContextManager</span>
+        <span class="chip">CapabilityACL</span>
+        <span class="chip">ToolOrchestrator</span>
+    </div>
 
-        // 1. INFRASTRUCTURE LAYER (Embedded from previous file)
-        class ToolContract {
-            constructor(spec) {
-                this.validateSpec(spec);
-                this.spec = spec;
-                this.status = 'inactive';
-            }
-
-            validateSpec(spec) {
-                const required = ['id', 'version', 'input', 'output', 'execute'];
-                const missing = required.filter(r => !spec[r]);
-                if (missing.length > 0) throw new Error(`Missing: ${missing.join(', ')}`);
-            }
-
-            async execute(input, context) {
-                // Validate input
-                if (this.spec.input.required) {
-                    const missing = this.spec.input.required.filter(f => !(f in input));
-                    if (missing.length > 0) throw new Error(`Missing fields: ${missing.join(', ')}`);
-                }
-                
-                // Execute with timeout
-                const timeout = this.spec.timeout || 5000;
-                return Promise.race([
-                    this.spec.execute(input, context),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('TIMEOUT')), timeout)
-                    )
-                ]);
-            }
-        }
-
-        class ContextManager {
-            constructor() {
-                this.scopes = { global: new Map(), colony: new Map(), agent: new Map(), private: new Map() };
-            }
-            get(key) { 
-                for (const scope of ['private', 'agent', 'colony', 'global']) {
-                    if (this.scopes[scope].has(key)) return this.scopes[scope].get(key);
-                }
-                return undefined;
-            }
-            set(key, value, scope = 'colony') { this.scopes[scope].set(key, value); }
-        }
-
-        // Global State
-        const State = {
-            tools: new Map(),
-            context: new ContextManager(),
-            colony: null
-        };
-
-        // 2. MAIN CHAT FUNCTIONS
-
-        function submitQuery() {
-            const input = document.getElementById('chatInput').value.trim();
-            if (!input) return;
-
-            addMessage(input, 'user');
-            document.getElementById('chatInput').value = '';
-
-            // Check if query matches any tool
-            const toolId = detectToolIntent(input);
-            
-            if (toolId && State.tools.has(toolId)) {
-                executeToolWorkflow(toolId, input);
-            } else {
-                // Default queen response
-                setTimeout(() => {
-                    addMessage(`I received: "${input}"\n\nTo use a tool, try:\n• "Search for [topic]"\n• "Calculate [math]"\n• "Analyze [data]"`, 'system');
-                }, 500);
-            }
-        }
-
-        function detectToolIntent(input) {
-            const lower = input.toLowerCase();
-            if (lower.match(/search|find|look up|google/)) return 'web-search';
-            if (lower.match(/calculate|compute|math|sum|add|multiply/)) return 'code-executor';
-            if (lower.match(/analyze|data|chart|graph/)) return 'data-analyzer';
-            if (lower.match(/write|create|generate.*code/)) return 'code-executor';
-            return null;
-        }
-
-        async function executeToolWorkflow(toolId, userInput) {
-            const tool = State.tools.get(toolId);
-            if (!tool) {
-                addMessage(`❌ Tool ${toolId} not found in registry`, 'system');
-                return;
-            }
-
-            addMessage(`🔧 Executing ${toolId}...`, 'system');
-
-            try {
-                // Parse input for tool
-                const parsedInput = parseInputForTool(toolId, userInput);
-                
-                // Execute via infrastructure
-                const result = await tool.execute(parsedInput, State.context);
-                
-                // Display result
-                addMessage(JSON.stringify(result, null, 2), 'tool');
-                
-                // Update context
-                State.context.set(`${toolId}_last_result`, result, 'colony');
-                
-            } catch (err) {
-                addMessage(`❌ Tool Error: ${err.message}`, 'system');
-            }
-        }
-
-        function parseInputForTool(toolId, input) {
-            if (toolId === 'web-search') {
-                return { query: input.replace(/search for|look up|find/gi, '').trim() };
-            }
-            if (toolId === 'code-executor') {
-                return { code: input, language: 'javascript' };
-            }
-            return { input };
-        }
-
-        function addMessage(content, type) {
-            const container = document.getElementById('chatMessages');
-            const msg = document.createElement('div');
-            msg.className = `message message-${type}`;
-            msg.innerHTML = type === 'tool' ? 
-                `<div style="font-weight: 600; margin-bottom: 8px; color: var(--tool-active);">⚡ Tool Output</div><pre style="margin: 0; white-space: pre-wrap;">${content}</pre>` :
-                content;
-            container.appendChild(msg);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // 3. TOOL MANAGEMENT FUNCTIONS
-
-        function handleFiles(files) {
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        // Parse metadata from file
-                        const metadata = extractMetadata(e.target.result, file.name);
-                        registerTool(metadata);
-                    } catch (err) {
-                        alert(`Failed to load ${file.name}: ${err.message}`);
-                    }
-                };
-                reader.readAsText(file);
-            });
-        }
-
-        function extractMetadata(content, filename) {
-            // Try to parse as module with metadata comment
-            const name = filename.replace(/\.[^/.]+$/, '');
-            
-            return {
-                id: name,
-                version: '1.0.0',
-                input: { type: 'object', required: ['input'] },
-                output: { type: 'object' },
-                timeout: 5000,
-                execute: new Function('input', 'context', `
-                    // Sandbox wrapper
-                    return (async () => {
-                        ${content}
-                    })();
-                `)
-            };
-        }
-
-        function registerTool(spec) {
-            try {
-                const contract = new ToolContract(spec);
-                State.tools.set(spec.id, contract);
-                renderToolList();
-                document.getElementById('activeToolCount').textContent = State.tools.size;
-                addMessage(`✅ Tool "${spec.id}" v${spec.version} registered and ready`, 'system');
-            } catch (err) {
-                addMessage(`❌ Failed to register tool: ${err.message}`, 'system');
-            }
-        }
-
-        function renderToolList() {
-            const list = document.getElementById('toolList');
-            if (State.tools.size === 0) {
-                list.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 40px; font-size: 13px;">No tools registered yet.<br>Upload a tool to get started.</div>`;
-                return;
-            }
-
-            list.innerHTML = '';
-            State.tools.forEach((tool, id) => {
-                const card = document.createElement('div');
-                card.className = `tool-card ${tool.status}`;
-                card.innerHTML = `
-                    <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                        <span class="tool-status ${tool.status}"></span>
-                        <strong>${id}</strong>
-                        <span style="margin-left: auto; font-size: 11px; color: var(--text-secondary);">v${tool.spec.version}</span>
-                    </div>
-                    <div style="font-size: 11px; color: var(--text-secondary);">Click to test or view details</div>
-                `;
-                card.onclick = () => showToolDetails(id);
-                list.appendChild(card);
-            });
-        }
-
-        function showToolDetails(id) {
-            const tool = State.tools.get(id);
-            document.getElementById('modalToolName').textContent = id;
-            document.getElementById('modalContent').innerHTML = `
-                <div style="margin-bottom: 16px;">
-                    <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Status</div>
-                    <div style="color: ${tool.status === 'active' ? 'var(--tool-active)' : 'var(--text-secondary)'}; font-weight: 600;">
-                        ${tool.status.toUpperCase()}
-                    </div>
-                </div>
-                <div style="margin-bottom: 16px;">
-                    <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Input Schema</div>
-                    <pre style="background: var(--bg-dark); padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto;">${JSON.stringify(tool.spec.input, null, 2)}</pre>
-                </div>
-                <button onclick="testTool('${id}')" style="width: 100%; padding: 12px; background: var(--accent); border: none; color: #000; border-radius: 6px; font-weight: 600; cursor: pointer; margin-bottom: 8px;">
-                    Test Tool
-                </button>
-                <button onclick="deleteTool('${id}')" style="width: 100%; padding: 12px; background: rgba(255, 71, 87, 0.2); border: 1px solid var(--tool-error); color: var(--tool-error); border-radius: 6px; cursor: pointer;">
-                    Remove Tool
-                </button>
-            `;
-            document.getElementById('toolModal').classList.add('active');
-        }
-
-        async function testTool(id) {
-            const tool = State.tools.get(id);
-            try {
-                const result = await tool.execute({ input: 'test' }, State.context);
-                alert(`✅ Test passed!\n\nResult: ${JSON.stringify(result, null, 2)}`);
-                tool.status = 'active';
-            } catch (err) {
-                alert(`❌ Test failed: ${err.message}`);
-                tool.status = 'error';
-            }
-            renderToolList();
-        }
-
-        function deleteTool(id) {
-            State.tools.delete(id);
-            document.getElementById('activeToolCount').textContent = State.tools.size;
-            closeModal();
-            renderToolList();
-            addMessage(`🗑️ Tool "${id}" removed from registry`, 'system');
-        }
-
-        function runAllTests() {
-            State.tools.forEach(async (tool, id) => {
-                try {
-                    await tool.execute({ input: 'test' }, State.context);
-                    tool.status = 'active';
-                } catch (err) {
-                    tool.status = 'error';
-                }
-            });
-            renderToolList();
-            addMessage(`🧪 Tested ${State.tools.size} tools. Check sidebar for results.`, 'system');
-        }
-
-        function closeModal() {
-            document.getElementById('toolModal').classList.remove('active');
-        }
-
-        function toggleToolSidebar() {
-            const sidebar = document.getElementById('toolSidebar');
-            sidebar.style.display = sidebar.style.display === 'none' ? 'flex' : 'none';
-        }
-
-        // Drag and drop
-        const uploadZone = document.getElementById('uploadZone');
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('drag-active');
-        });
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('drag-active');
-        });
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('drag-active');
-            handleFiles(e.dataTransfer.files);
-        });
-
-        // Init
-        window.addEventListener('load', () => {
-            // Load built-in tools
-            registerTool({
-                id: 'web-search',
-                version: '1.0.0',
-                input: { type: 'object', required: ['query'] },
-                output: { type: 'object' },
-                timeout: 10000,
-                execute: async (input) => ({
-                    results: [`Result for "${input.query}"`],
-                    sources: ['web']
-                })
-            });
-
-            registerTool({
-                id: 'code-executor',
-                version: '2.0.0',
-                input: { type: 'object', required: ['code'] },
-                output: { type: 'object' },
-                timeout: 5000,
-                sandboxLevel: 'container',
-                execute: async (input) => ({
-                    stdout: `Executed: ${input.code}`,
-                    stderr: '',
-                    exitCode: 0
-                })
-            });
-        });
-
-        // Enter key to send
-        document.getElementById('chatInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                submitQuery();
-            }
-        });
-    </script>
+    <div class="notice">
+        ⚠️ <strong>No model is attached.</strong>
+        Tools run as stubs and return placeholder data.<br>
+        Serve from an HTTP server to use ES module imports:<br>
+        <code>python3 -m http.server 8080</code> &nbsp;→&nbsp; open <code>http://localhost:8080</code>
+    </div>
+</div>
 </body>
 </html>

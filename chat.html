@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koloni Swarm v2.5 — Chat</title>
+    <link rel="stylesheet" href="./styles/common.css">
+    <style>
+        /* ── Layout ──────────────────────────────────────────── */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* ── Header ──────────────────────────────────────────── */
+        .chat-header {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .colony-info { display: flex; align-items: center; gap: 16px; }
+
+        .colony-id {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--accent);
+            background: rgba(100, 255, 218, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* ── Messages ────────────────────────────────────────── */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 16px 20px;
+            border-radius: 12px;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        .message-user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--worker-blue), #3457c4);
+            color: white;
+        }
+
+        .message-system {
+            align-self: flex-start;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+
+        .message-tool {
+            align-self: flex-start;
+            background: rgba(0, 255, 127, 0.1);
+            border: 1px solid var(--tool-active);
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        /* ── Input area ──────────────────────────────────────── */
+        .input-container {
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+            padding: 20px 24px;
+        }
+
+        .input-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 120px 16px 16px;
+            color: var(--text-primary);
+            font-size: 15px;
+            resize: none;
+            min-height: 56px;
+        }
+
+        .chat-input:focus { outline: none; border-color: var(--accent); }
+
+        .input-actions {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover         { border-color: var(--accent); color: var(--accent); }
+        .icon-btn.send          { background: var(--accent); color: #000; border: none; font-weight: 600; }
+
+        /* ── Tool Sidebar ────────────────────────────────────── */
+        .tool-sidebar {
+            width: 380px;
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tool-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upload-zone {
+            margin: 20px;
+            padding: 24px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-active {
+            border-color: var(--accent);
+            background: rgba(100, 255, 218, 0.05);
+        }
+
+        .tool-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px;
+        }
+
+        .tool-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .tool-card:hover   { border-color: var(--accent); }
+        .tool-card.active  { border-left-color: var(--tool-active); }
+        .tool-card.error   { border-left-color: var(--tool-error); }
+
+        /* ── Tool detail modal ───────────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Chat interface ─────────────────────────────────────────────────── -->
+<main class="main-container">
+    <header class="chat-header">
+        <div class="colony-info">
+            <div class="colony-id" id="colonyId">C-DEV-—</div>
+            <div style="font-size: 13px; color: var(--text-secondary);">
+                Koloni Swarm v2.5 &bull; <span id="activeToolCount">0</span> tools ready
+            </div>
+        </div>
+        <button class="btn" onclick="toggleToolSidebar()">🔧 Tools</button>
+    </header>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="message message-system">
+            <strong>🐝 Koloni Swarm v2.5</strong><br>
+            Infrastructure layer loaded. No model is attached — tools run as stubs.<br><br>
+            Try: "Search for AI research" &nbsp;|&nbsp; "Calculate 2+2"<br>
+            Upload a tool via the sidebar to extend the registry.
+        </div>
+    </div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <textarea class="chat-input" id="chatInput"
+                placeholder="Ask me anything, or request a specific tool…" rows="1"></textarea>
+            <div class="input-actions">
+                <button class="icon-btn" title="Upload Tool"
+                    onclick="document.getElementById('fileInput').click()">📦</button>
+                <button class="icon-btn send" onclick="submitQuery()">Send</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ── Tool sidebar ───────────────────────────────────────────────────── -->
+<aside class="tool-sidebar" id="toolSidebar">
+    <div class="tool-header">
+        <div>Tool Registry</div>
+        <button class="btn btn-accent" onclick="runAllTests()" style="font-size: 12px; padding: 6px 12px;">
+            Test All
+        </button>
+    </div>
+
+    <div class="upload-zone" id="uploadZone"
+         onclick="document.getElementById('fileInput').click()">
+        <div style="font-size: 24px; margin-bottom: 8px;">📥</div>
+        <div style="font-size: 13px; color: var(--text-secondary);">Drop tools here or click to upload</div>
+        <div style="font-size: 11px; color: var(--text-secondary); opacity: 0.7; margin-top: 4px;">.js .json supported</div>
+    </div>
+
+    <input type="file" id="fileInput" class="hidden" multiple accept=".js,.json"
+           onchange="handleFiles(this.files)">
+
+    <div class="tool-list" id="toolList">
+        <div style="text-align: center; color: var(--text-secondary); padding: 40px; font-size: 13px;">
+            No tools registered yet.<br>Upload a tool to get started.
+        </div>
+    </div>
+</aside>
+
+<!-- ── Tool detail modal ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="toolModal">
+    <div class="modal">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 id="modalToolName">Tool Details</h3>
+            <button onclick="closeModal()"
+                style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;">×</button>
+        </div>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<script type="module">
+import { ToolContract }     from './src/core/ToolContract.js';
+import { ContextManager }   from './src/core/ContextManager.js';
+import { AgentToolBus }     from './src/core/AgentToolBus.js';
+import { CapabilityACL }    from './src/core/CapabilityACL.js';
+import { ToolOrchestrator } from './src/core/ToolOrchestrator.js';
+
+// ── Infrastructure (no bus — direct execution for real stub results) ──────
+const context      = new ContextManager();
+const acl          = new CapabilityACL();
+const orchestrator = new ToolOrchestrator(null, context, acl); // null bus → direct
+
+// Shared tool registry (also used by sidebar UI)
+const toolRegistry = new Map(); // id → ToolContract
+
+// ── Chat state ────────────────────────────────────────────────────────────
+const colonyId = `C-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+document.getElementById('colonyId').textContent = colonyId;
+
+// Seed context for worker agent
+context.set('agent_id',     colonyId,                 'agent');
+context.set('agent_claims', acl.generateClaims('worker'), 'agent');
+
+// ── Register a tool (contract + orchestrator + UI) ────────────────────────
+function registerTool(spec) {
+    try {
+        const contract = new ToolContract(spec);
+        orchestrator.registerContract(contract);
+        toolRegistry.set(spec.id, contract);
+        renderToolList();
+        document.getElementById('activeToolCount').textContent = toolRegistry.size;
+        addMessage(`✅ Tool "${spec.id}" v${spec.version} registered`, 'system');
+    } catch (err) {
+        addMessage(`❌ Failed to register tool: ${err.message}`, 'system');
+    }
+}
+
+// ── Built-in stub tools ───────────────────────────────────────────────────
+// No model is attached — stubs return placeholder data.
+// Replace execute() bodies when real integrations are added.
+
+registerTool({
+    id: 'web-search', version: '1.0.0', schema: 'koloni-tool-v1',
+    input:  { type: 'object', required: ['query'] },
+    output: { type: 'object' },
+    timeout: 10000,
+    execute: async (input) => ({
+        results: [`[stub] Results for: "${input.query}"`, 'Connect a model to get real results.'],
+        sources: [],
+    }),
+});
+
+registerTool({
+    id: 'code-executor', version: '2.0.0', schema: 'koloni-tool-v1',
+    input:  { type: 'object', required: ['code'] },
+    output: { type: 'object' },
+    timeout: 5000,
+    execute: async (input) => ({
+        stdout: `[stub] Would execute: ${input.code}`,
+        stderr: '',
+        exitCode: 0,
+    }),
+});
+
+// ── Chat interaction ──────────────────────────────────────────────────────
+async function submitQuery() {
+    const textarea = document.getElementById('chatInput');
+    const text     = textarea.value.trim();
+    if (!text) return;
+
+    addMessage(text, 'user');
+    textarea.value = '';
+
+    const toolId = detectIntent(text);
+    if (toolId && toolRegistry.has(toolId)) {
+        await executeToolWorkflow(toolId, text);
+    } else {
+        setTimeout(() => {
+            addMessage(
+                `Received: "${text}"\n\nNo matching tool found. Try:\n• "Search for [topic]"\n• "Calculate [expression]"`,
+                'system'
+            );
+        }, 300);
+    }
+}
+
+function detectIntent(text) {
+    const t = text.toLowerCase();
+    if (t.match(/search|find|look up/))             return 'web-search';
+    if (t.match(/calculate|compute|run|execute/))   return 'code-executor';
+    return null;
+}
+
+async function executeToolWorkflow(toolId, userInput) {
+    addMessage(`🔧 Routing to ${toolId}…`, 'system');
+    try {
+        const input  = buildInput(toolId, userInput);
+        const result = await orchestrator.execute(colonyId, toolId, input);
+        addMessage(JSON.stringify(result, null, 2), 'tool');
+        context.set(`${toolId}_last_result`, result, 'colony');
+    } catch (err) {
+        addMessage(`❌ Tool Error: ${err.message}`, 'system');
+    }
+}
+
+function buildInput(toolId, text) {
+    if (toolId === 'web-search')    return { query: text.replace(/search for|look up|find/gi, '').trim() };
+    if (toolId === 'code-executor') return { code: text, language: 'javascript' };
+    return { input: text };
+}
+
+function addMessage(content, type) {
+    const container = document.getElementById('chatMessages');
+    const msg = document.createElement('div');
+    msg.className = `message message-${type}`;
+    msg.innerHTML = type === 'tool'
+        ? `<div style="font-weight:600;margin-bottom:8px;color:var(--tool-active);">⚡ Tool Output</div>
+           <pre style="margin:0;white-space:pre-wrap;">${content}</pre>`
+        : content;
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
+}
+
+// ── File upload ───────────────────────────────────────────────────────────
+function handleFiles(files) {
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const spec = parseToolFile(e.target.result, file.name);
+                registerTool(spec);
+            } catch (err) {
+                addMessage(`❌ Failed to load ${file.name}: ${err.message}`, 'system');
+            }
+        };
+        reader.readAsText(file);
+    });
+}
+
+function parseToolFile(content, filename) {
+    // Try to parse as JSON spec first
+    if (filename.endsWith('.json')) {
+        const spec = JSON.parse(content);
+        // execute must be added separately; JSON tools are metadata-only for now
+        spec.execute = async (input) => ({ result: '[stub] JSON tool — add execute logic' });
+        return spec;
+    }
+
+    // .js file: wrap content as execute body (koloni-tool-v1 spec required in comments or auto-generated)
+    const name = filename.replace(/\.[^/.]+$/, '');
+    return {
+        id:      name,
+        version: '1.0.0',
+        schema:  'koloni-tool-v1',
+        input:   { type: 'object', required: ['input'] },
+        output:  { type: 'object' },
+        timeout: 5000,
+        // NOTE: new Function executes uploaded JS — only use trusted sources.
+        execute: new Function('input', 'context', `return (async()=>{ ${content} })()`),
+    };
+}
+
+// ── Sidebar UI ────────────────────────────────────────────────────────────
+function renderToolList() {
+    const list = document.getElementById('toolList');
+    if (toolRegistry.size === 0) {
+        list.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:40px;font-size:13px;">
+            No tools registered yet.<br>Upload a tool to get started.</div>`;
+        return;
+    }
+
+    list.innerHTML = '';
+    toolRegistry.forEach((contract, id) => {
+        const card = document.createElement('div');
+        card.className = `tool-card ${contract.status}`;
+        card.innerHTML = `
+            <div style="display:flex;align-items:center;margin-bottom:4px;">
+                <span class="status-dot ${contract.status === 'active' ? 'ready' : ''}"></span>
+                <strong style="margin-left:8px;">${id}</strong>
+                <span style="margin-left:auto;font-size:11px;color:var(--text-secondary);">v${contract.spec.version}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-secondary);">Click to test or view details</div>`;
+        card.onclick = () => showToolDetails(id);
+        list.appendChild(card);
+    });
+}
+
+function showToolDetails(id) {
+    const contract = toolRegistry.get(id);
+    document.getElementById('modalToolName').textContent = id;
+    document.getElementById('modalContent').innerHTML = `
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">Status</div>
+            <div style="font-weight:600;color:var(--text-secondary);">${(contract.status || 'inactive').toUpperCase()}</div>
+        </div>
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">Input Schema</div>
+            <pre class="code-block">${JSON.stringify(contract.spec.input, null, 2)}</pre>
+        </div>
+        <button class="btn btn-accent" onclick="testTool('${id}')"
+            style="width:100%;padding:12px;margin-bottom:8px;justify-content:center;">Test Tool</button>
+        <button onclick="deleteTool('${id}')"
+            style="width:100%;padding:12px;background:rgba(255,71,87,0.2);border:1px solid var(--tool-error);
+                   color:var(--tool-error);border-radius:6px;cursor:pointer;">Remove Tool</button>`;
+    document.getElementById('toolModal').classList.add('active');
+}
+
+async function testTool(id) {
+    const contract = toolRegistry.get(id);
+    try {
+        const result = await contract.execute({ input: 'test', query: 'test', code: 'console.log("test")' }, context);
+        alert(`✅ Test passed!\n\n${JSON.stringify(result, null, 2)}`);
+        contract.status = 'active';
+    } catch (err) {
+        alert(`❌ Test failed: ${err.message}`);
+        contract.status = 'error';
+    }
+    renderToolList();
+}
+
+async function runAllTests() {
+    for (const [id, contract] of toolRegistry) {
+        try {
+            await contract.execute({ input: 'test', query: 'test', code: 'test' }, context);
+            contract.status = 'active';
+        } catch {
+            contract.status = 'error';
+        }
+    }
+    renderToolList();
+    addMessage(`🧪 Tested ${toolRegistry.size} tool(s). Check sidebar for results.`, 'system');
+}
+
+function deleteTool(id) {
+    toolRegistry.delete(id);
+    orchestrator.contracts.delete(id);
+    document.getElementById('activeToolCount').textContent = toolRegistry.size;
+    closeModal();
+    renderToolList();
+    addMessage(`🗑️ Tool "${id}" removed from registry`, 'system');
+}
+
+function closeModal() { document.getElementById('toolModal').classList.remove('active'); }
+
+function toggleToolSidebar() {
+    const sb = document.getElementById('toolSidebar');
+    sb.style.display = sb.style.display === 'none' ? 'flex' : 'none';
+}
+
+// ── Drag-and-drop ─────────────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover',  (e) => { e.preventDefault(); uploadZone.classList.add('drag-active'); });
+uploadZone.addEventListener('dragleave', ()  => uploadZone.classList.remove('drag-active'));
+uploadZone.addEventListener('drop',      (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-active');
+    handleFiles(e.dataTransfer.files);
+});
+
+// ── Enter to send ─────────────────────────────────────────────────────────
+document.getElementById('chatInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitQuery(); }
+});
+
+// Expose globals needed by inline onclick handlers
+window.toggleToolSidebar = toggleToolSidebar;
+window.handleFiles       = handleFiles;
+window.submitQuery       = submitQuery;
+window.closeModal        = closeModal;
+window.showToolDetails   = showToolDetails;
+window.testTool          = testTool;
+window.deleteTool        = deleteTool;
+window.runAllTests       = runAllTests;
+</script>
+</body>
+</html>

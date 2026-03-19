@@ -1,0 +1,29 @@
+:root {
+    /* Agent type colours */
+    --queen-gold:       #FFD700;
+    --worker-blue:      #4169E1;
+    --worker-code:      #00CED1;
+    --worker-research:  #9370DB;
+    --worker-creative:  #FF69B4;
+    --worker-analyst:   #20B2AA;
+
+    /* Tool state colours */
+    --tool-active: #00FF7F;
+    --tool-busy:   #00CED1;
+    --tool-error:  #FF4757;
+
+    /* Backgrounds */
+    --bg-dark:     #0a0a0f;
+    --bg-panel:    #13131f;
+    --bg-card:     #1a1a2e;
+    --bg-elevated: #252538;
+
+    /* Text */
+    --text-primary:   #e0e0e0;
+    --text-secondary: #8892b0;
+
+    /* Borders / accents */
+    --border-color: #2d2d3d;
+    --accent:       #64ffda;
+    --shadow-glow:  0 0 20px rgba(100, 255, 218, 0.2);
+}
